@@ -1,0 +1,102 @@
+.ai-generated {
+  color: #ff6b35;
+}
+
+.real-content {
+  color: #28a745;
+}
+
+.progress {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width 0.8s ease-in-out;
+}
+
+.card {
+  border-radius: 15px;
+  overflow: hidden;
+  
+  // Mobil responsive
+  @media (max-width: 768px) {
+    border-radius: 10px;
+    margin-top: 1rem;
+  }
+}
+
+.card-header {
+  border: none;
+  
+  @media (max-width: 576px) {
+    padding: 0.75rem 1rem;
+  }
+}
+
+.badge {
+  border-radius: 8px;
+  
+  // Mobil responsive
+  @media (max-width: 576px) {
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+}
+
+// Mobil responsive ayarları
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem !important;
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress {
+    height: 8px !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  .alert {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    
+    .fas {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .row {
+    margin: 0 -0.25rem;
+    
+    .col-12, .col-md-4, .col-md-6 {
+      padding: 0 0.25rem;
+    }
+  }
+  
+  .card.bg-light {
+    .card-body {
+      padding: 0.5rem !important;
+    }
+  }
+  
+  .d-flex.justify-content-between {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    
+    .text-muted {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .badge {
+      flex-shrink: 0;
+    }
+  }
+}

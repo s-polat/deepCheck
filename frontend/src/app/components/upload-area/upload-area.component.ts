@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ResultViewComponent } from '../result-view/result-view.component';
+import { ApiService, AnalysisResult } from '../../services/api.service';
 
 @Component({
   selector: 'app-upload-area',
@@ -9,48 +10,557 @@ import { ResultViewComponent } from '../result-view/result-view.component';
   templateUrl: './upload-area.component.html',
   styleUrl: './upload-area.component.scss'
 })
-export class UploadAreaComponent {
+export class UploadAreaComponent implements OnInit {
   selectedFile: File | null = null;
   fileName: string = '';
   mediaUrl: string = '';
   loading: boolean = false;
   result: any = null;
+  errorMessage: string = '';
+  linkErrorMessage: string = '';
+  isValidUrl: boolean = false;
+  backendAvailable: boolean = false;
+
+  // Dosya kısıtlamaları
+  private readonly MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  private readonly MAX_VIDEO_SIZE = 30 * 1024 * 1024; // 30MB
+  private readonly ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  private readonly ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm'];
+
+  // URL kısıtlamaları
+  private readonly ALLOWED_DOMAINS = [
+    'youtube.com', 'www.youtube.com', 'youtu.be',
+    'instagram.com', 'www.instagram.com',
+    'tiktok.com', 'www.tiktok.com',
+    'twitter.com', 'www.twitter.com', 'x.com', 'www.x.com',
+    'facebook.com', 'www.facebook.com',
+    'vimeo.com', 'www.vimeo.com',
+    'dailymotion.com', 'www.dailymotion.com'
+  ];
+  
+  private readonly ALLOWED_EXTENSIONS = [
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
+    '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'
+  ];
+
+  constructor(private apiService: ApiService) {}
+
+  ngOnInit() {
+    // Backend durumunu kontrol et
+    this.checkBackendStatus();
+  }
+
+  private checkBackendStatus() {
+    this.apiService.getHealthStatus().subscribe({
+      next: (response) => {
+        this.backendAvailable = response.status === 'healthy';
+        console.log('Backend durum:', response);
+      },
+      error: (error) => {
+        this.backendAvailable = false;
+        console.log('Backend bağlantısı yok, demo modda çalışılıyor');
+      }
+    });
+  }
 
   onFileSelected(event: any) {
-    this.selectedFile = event.target.files[0];
-    this.fileName = this.selectedFile ? this.selectedFile.name : '';
+    const file = event.target.files[0];
+    if (file) {
+      this.validateAndSetFile(file);
+    }
   }
 
   onDrop(event: DragEvent) {
     event.preventDefault();
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
-      this.selectedFile = files[0];
-      this.fileName = this.selectedFile.name;
+      this.validateAndSetFile(files[0]);
     }
+  }
+
+  private validateAndSetFile(file: File) {
+    this.errorMessage = '';
+    
+    // Dosya türü kontrolü
+    const isImage = this.ALLOWED_IMAGE_TYPES.includes(file.type);
+    const isVideo = this.ALLOWED_VIDEO_TYPES.includes(file.type);
+    
+    if (!isImage && !isVideo) {
+      this.errorMessage = 'Sadece fotoğraf (JPEG, PNG, GIF, WebP) ve video (MP4, AVI, MOV, WMV, FLV, WebM) dosyaları yükleyebilirsiniz.';
+      this.selectedFile = null;
+      this.fileName = '';
+      return;
+    }
+
+    // Dosya boyutu kontrolü
+    if (isImage && file.size > this.MAX_IMAGE_SIZE) {
+      this.errorMessage = 'Fotoğraf dosyaları en fazla 10MB olabilir.';
+      this.selectedFile = null;
+      this.fileName = '';
+      return;
+    }
+
+    if (isVideo && file.size > this.MAX_VIDEO_SIZE) {
+      this.errorMessage = 'Video dosyaları en fazla 30MB olabilir.';
+      this.selectedFile = null;
+      this.fileName = '';
+      return;
+    }
+
+    // Dosya geçerli
+    this.selectedFile = file;
+    this.fileName = file.name;
+    this.errorMessage = '';
   }
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
   }
 
-  analyzeFile() {
-    if (this.selectedFile || this.mediaUrl) {
-      this.loading = true;
-      // Simüle et - gerçekte backend'e istek göndereceğiz
-      setTimeout(() => {
-        this.result = {
-          is_ai_generated: Math.random() > 0.5,
-          confidence: Math.random()
-        };
-        this.loading = false;
-      }, 2000);
+  // URL doğrulama
+  validateUrl() {
+    this.linkErrorMessage = '';
+    this.isValidUrl = false;
+
+    if (!this.mediaUrl.trim()) {
+      return;
+    }
+
+    try {
+      const url = new URL(this.mediaUrl);
+      
+      // Protokol kontrolü
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        this.linkErrorMessage = 'URL sadece HTTP veya HTTPS protokolü kullanabilir.';
+        return;
+      }
+
+      // Domain kontrolü
+      const hostname = url.hostname.toLowerCase();
+      const pathname = url.pathname.toLowerCase();
+      const searchParams = url.searchParams;
+
+      // Direkt medya dosyası kontrolü
+      const isDirectMedia = this.ALLOWED_EXTENSIONS.some(ext => 
+        pathname.endsWith(ext)
+      );
+
+      // Platform spesifik içerik kontrolü
+      const contentValidation = this.validatePlatformContent(hostname, pathname, searchParams);
+      
+      if (!contentValidation.isValid && !isDirectMedia) {
+        this.linkErrorMessage = contentValidation.errorMessage;
+        return;
+      }
+
+      // URL uzunluk kontrolü
+      if (this.mediaUrl.length > 2048) {
+        this.linkErrorMessage = 'URL çok uzun (maksimum 2048 karakter).';
+        return;
+      }
+
+      // Güvenli karakter kontrolü
+      const dangerousPatterns = [
+        /javascript:/i,
+        /data:/i,
+        /vbscript:/i,
+        /<script/i,
+        /onload=/i,
+        /onerror=/i
+      ];
+
+      if (dangerousPatterns.some(pattern => pattern.test(this.mediaUrl))) {
+        this.linkErrorMessage = 'URL güvenli olmayan içerik barındırıyor.';
+        return;
+      }
+
+      this.isValidUrl = true;
+    } catch (error) {
+      this.linkErrorMessage = 'Geçersiz URL formatı. Örnek: https://www.youtube.com/watch?v=...';
     }
   }
 
-  analyzeLink() {
-    if (this.mediaUrl) {
-      this.analyzeFile();
+  onUrlInput() {
+    this.validateUrl();
+  }
+
+  setExampleUrl(url: string) {
+    this.mediaUrl = url;
+    this.validateUrl();
+  }
+
+  clearFile() {
+    this.selectedFile = null;
+    this.fileName = '';
+    this.errorMessage = '';
+    this.result = null;
+    
+    // File input'u temizle
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
     }
+  }
+
+  clearUrl() {
+    this.mediaUrl = '';
+    this.linkErrorMessage = '';
+    this.isValidUrl = false;
+    this.result = null;
+  }
+
+  // Ana analiz metodunu - dosya veya URL'ye göre uygun metodu çağırır
+  startAnalysis() {
+    if (this.selectedFile && !this.errorMessage) {
+      this.analyzeFile();
+    } else if (this.mediaUrl && this.isValidUrl && !this.linkErrorMessage) {
+      this.analyzeLink();
+    }
+  }
+
+  analyzeFile() {
+    if (this.selectedFile && !this.errorMessage) {
+      this.loading = true;
+      this.result = null;
+      this.errorMessage = '';
+
+      if (this.backendAvailable) {
+        // Gerçek backend API çağrısı
+        this.apiService.analyzeFile(this.selectedFile).subscribe({
+          next: (response) => {
+            this.loading = false;
+            if (response.success && response.result) {
+              this.result = response.result;
+            } else {
+              this.errorMessage = response.error || 'Analiz sırasında bir hata oluştu.';
+            }
+          },
+          error: (error) => {
+            this.loading = false;
+            console.error('API Hatası:', error);
+            this.errorMessage = 'Backend bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
+            // Backend hata durumunda demo modu
+            this.runDemoAnalysis();
+          }
+        });
+      } else {
+        // Demo modu - backend yok
+        this.runDemoAnalysis();
+      }
+    }
+  }
+
+  private runDemoAnalysis() {
+    // Demo analiz simülasyonu
+    setTimeout(() => {
+      this.result = {
+        is_ai_generated: Math.random() > 0.5,
+        confidence: Math.random() * 0.4 + 0.6, // 0.6-1.0 arası güven skoru
+        analysis_time: Math.random() * 2 + 1, // 1-3 saniye arası
+        model_version: 'Demo v1.0',
+        details: {
+          artifacts: Math.random() > 0.5 ? ['Pixel artifacts detected', 'Unusual compression patterns'] : [],
+          probability_scores: {
+            'AI Generated': Math.random(),
+            'Real Image': Math.random(),
+            'Edited Image': Math.random()
+          }
+        }
+      };
+      this.loading = false;
+    }, 2000);
+  }
+
+  analyzeLink() {
+    if (this.mediaUrl && this.isValidUrl && !this.linkErrorMessage) {
+      this.loading = true;
+      this.result = null;
+      this.linkErrorMessage = '';
+
+      if (this.backendAvailable) {
+        // Gerçek backend API çağrısı
+        this.apiService.analyzeUrl(this.mediaUrl).subscribe({
+          next: (response) => {
+            this.loading = false;
+            if (response.success && response.result) {
+              this.result = response.result;
+            } else {
+              this.linkErrorMessage = response.error || 'URL analizi sırasında bir hata oluştu.';
+            }
+          },
+          error: (error) => {
+            this.loading = false;
+            console.error('API Hatası:', error);
+            this.linkErrorMessage = 'Backend bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
+            // Backend hata durumunda demo modu
+            this.runDemoAnalysis();
+          }
+        });
+      } else {
+        // Demo modu - backend yok
+        this.runDemoAnalysis();
+      }
+    }
+  }
+
+  // Dosya boyutunu okunabilir formatta göster
+  getFileSize(): string {
+    if (!this.selectedFile) return '';
+    
+    const bytes = this.selectedFile.size;
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // Dosya türünü kontrol et
+  getFileType(): string {
+    if (!this.selectedFile) return '';
+    
+    if (this.ALLOWED_IMAGE_TYPES.includes(this.selectedFile.type)) {
+      return '📷 Fotoğraf';
+    } else if (this.ALLOWED_VIDEO_TYPES.includes(this.selectedFile.type)) {
+      return '🎥 Video';
+    }
+    return '📄 Dosya';
+  }
+
+  // URL'den platform bilgisini çıkar
+  getPlatformInfo(): string {
+    if (!this.mediaUrl || !this.isValidUrl) return '';
+    
+    try {
+      const url = new URL(this.mediaUrl);
+      const hostname = url.hostname.toLowerCase();
+      
+      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+        return '📺 YouTube';
+      } else if (hostname.includes('instagram.com')) {
+        return '📱 Instagram';
+      } else if (hostname.includes('tiktok.com')) {
+        return '🎵 TikTok';
+      } else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+        return '🐦 Twitter/X';
+      } else if (hostname.includes('facebook.com')) {
+        return '📘 Facebook';
+      } else if (hostname.includes('vimeo.com')) {
+        return '🎬 Vimeo';
+      } else if (hostname.includes('dailymotion.com')) {
+        return '📹 DailyMotion';
+      } else {
+        // Direkt medya dosyası kontrolü
+        const pathname = url.pathname.toLowerCase();
+        if (this.ALLOWED_EXTENSIONS.some(ext => pathname.endsWith(ext))) {
+          return '📁 Direkt Medya';
+        }
+      }
+    } catch (error) {
+      return '';
+    }
+    
+    return '🌐 Web Bağlantısı';
+  }
+
+  // Platform-spesifik URL içerik doğrulaması
+  private validatePlatformContent(hostname: string, pathname: string, searchParams: URLSearchParams): {isValid: boolean, errorMessage: string} {
+    
+    // YouTube kontrolleri
+    if (hostname.includes('youtube.com')) {
+      // Ana sayfa kontrolü
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'YouTube ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+        };
+      }
+      
+      // Video ID kontrolleri
+      if (pathname.startsWith('/watch')) {
+        const videoId = searchParams.get('v');
+        if (!videoId || videoId.length !== 11) {
+          return {
+            isValid: false,
+            errorMessage: 'Geçerli bir YouTube video bağlantısı girin. Örnek: https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+          };
+        }
+      } else if (pathname.startsWith('/shorts/')) {
+        const shortId = pathname.split('/shorts/')[1];
+        if (!shortId || shortId.length < 10) {
+          return {
+            isValid: false,
+            errorMessage: 'Geçerli bir YouTube Shorts bağlantısı girin.'
+          };
+        }
+      } else if (pathname.startsWith('/embed/')) {
+        const embedId = pathname.split('/embed/')[1];
+        if (!embedId || embedId.length !== 11) {
+          return {
+            isValid: false,
+            errorMessage: 'Geçerli bir YouTube embed bağlantısı girin.'
+          };
+        }
+      } else {
+        return {
+          isValid: false,
+          errorMessage: 'Sadece YouTube video, shorts veya embed bağlantıları kabul edilir.'
+        };
+      }
+    }
+    
+    // YouTube kısa bağlantı (youtu.be) kontrolleri
+    else if (hostname.includes('youtu.be')) {
+      const videoId = pathname.substring(1); // İlk '/' karakterini çıkar
+      if (!videoId || videoId.length !== 11) {
+        return {
+          isValid: false,
+          errorMessage: 'Geçerli bir YouTube kısa bağlantısı girin. Örnek: https://youtu.be/dQw4w9WgXcQ'
+        };
+      }
+    }
+    
+    // Instagram kontrolleri
+    else if (hostname.includes('instagram.com')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'Instagram ana sayfası kabul edilmiyor. Lütfen belirli bir gönderi bağlantısı girin.'
+        };
+      }
+      
+      // Gönderi, reel veya hikaye kontrolleri
+      if (!pathname.startsWith('/p/') && 
+          !pathname.startsWith('/reel/') && 
+          !pathname.startsWith('/stories/') &&
+          !pathname.startsWith('/tv/')) {
+        return {
+          isValid: false,
+          errorMessage: 'Sadece Instagram gönderi, reel, hikaye veya IGTV bağlantıları kabul edilir.'
+        };
+      }
+      
+      // Bağlantı uzunluk kontrolü (Instagram ID'leri genellikle 11 karakter)
+      const segments = pathname.split('/').filter(s => s);
+      if (segments.length < 2) {
+        return {
+          isValid: false,
+          errorMessage: 'Geçerli bir Instagram gönderi bağlantısı girin.'
+        };
+      }
+    }
+    
+    // TikTok kontrolleri
+    else if (hostname.includes('tiktok.com')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'TikTok ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+        };
+      }
+      
+      // TikTok video kontrolleri
+      if (!pathname.includes('/video/') && !pathname.startsWith('/@')) {
+        return {
+          isValid: false,
+          errorMessage: 'Sadece TikTok video bağlantıları kabul edilir.'
+        };
+      }
+    }
+    
+    // Twitter/X kontrolleri
+    else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'Twitter ana sayfası kabul edilmiyor. Lütfen belirli bir tweet bağlantısı girin.'
+        };
+      }
+      
+      // Tweet kontrolleri - /username/status/tweet_id formatı
+      const pathParts = pathname.split('/').filter(s => s);
+      if (pathParts.length < 3 || pathParts[1] !== 'status') {
+        return {
+          isValid: false,
+          errorMessage: 'Geçerli bir tweet bağlantısı girin. Örnek: https://twitter.com/username/status/123456789'
+        };
+      }
+    }
+    
+    // Facebook kontrolleri
+    else if (hostname.includes('facebook.com')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'Facebook ana sayfası kabul edilmiyor. Lütfen belirli bir gönderi bağlantısı girin.'
+        };
+      }
+      
+      // Facebook gönderi kontrolleri
+      if (!pathname.includes('/posts/') && 
+          !pathname.includes('/photos/') && 
+          !pathname.includes('/videos/') &&
+          !pathname.includes('/watch/')) {
+        return {
+          isValid: false,
+          errorMessage: 'Sadece Facebook gönderi, fotoğraf veya video bağlantıları kabul edilir.'
+        };
+      }
+    }
+    
+    // Vimeo kontrolleri
+    else if (hostname.includes('vimeo.com')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'Vimeo ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+        };
+      }
+      
+      // Vimeo video ID kontrolleri (genellikle sadece rakamlar)
+      const videoId = pathname.substring(1);
+      if (!/^\d+$/.test(videoId)) {
+        return {
+          isValid: false,
+          errorMessage: 'Geçerli bir Vimeo video bağlantısı girin. Örnek: https://vimeo.com/123456789'
+        };
+      }
+    }
+    
+    // DailyMotion kontrolleri
+    else if (hostname.includes('dailymotion.com')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'DailyMotion ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+        };
+      }
+      
+      // DailyMotion video kontrolleri
+      if (!pathname.startsWith('/video/')) {
+        return {
+          isValid: false,
+          errorMessage: 'Geçerli bir DailyMotion video bağlantısı girin.'
+        };
+      }
+    }
+    
+    // Diğer domain kontrolleri - sadece direkt medya dosyalarına izin ver
+    else {
+      const isDomainAllowed = this.ALLOWED_DOMAINS.some(domain => 
+        hostname === domain || hostname.endsWith('.' + domain)
+      );
+      
+      if (!isDomainAllowed) {
+        return {
+          isValid: false,
+          errorMessage: 'Bu domain desteklenmiyor. Desteklenen platformlar: YouTube, Instagram, TikTok, Twitter/X, Facebook, Vimeo, DailyMotion'
+        };
+      }
+    }
+    
+    return { isValid: true, errorMessage: '' };
   }
 }

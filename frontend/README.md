@@ -1,6 +1,33 @@
-# Frontend
+# DeepCheck Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.15.
+AI-powered photo and video verification frontend application built with Angular 19.
+
+## 🚀 Features
+
+- **File Upload**: Drag & drop support with file type and size validation
+- **URL Analysis**: Platform-specific URL validation for social media platforms  
+- **Real-time Validation**: Instant feedback for file and URL inputs
+- **Backend Integration**: HTTP client ready for AI analysis backend
+- **Modern UI**: Bootstrap 5 responsive design with loading states
+
+## 🛠 Supported Platforms
+
+- **YouTube**: Video links, Shorts, Embed URLs
+- **Instagram**: Posts, Reels, Stories, IGTV
+- **TikTok**: Video content
+- **Twitter/X**: Tweet links
+- **Facebook**: Posts, Photos, Videos
+- **Vimeo**: Video content
+- **DailyMotion**: Video content
+- **Direct Media**: Direct image/video file URLs
+
+## 📁 File Support
+
+### Images (Max 10MB)
+- JPEG, JPG, PNG, GIF, WebP
+
+### Videos (Max 30MB)  
+- MP4, AVI, MOV, WMV, FLV, WebM
 
 ## Development server
 

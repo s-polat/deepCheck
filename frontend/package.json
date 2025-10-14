@@ -1,6 +1,8 @@
 {
-  "name": "frontend",
-  "version": "0.0.0",
+  "name": "deepcheck-frontend",
+  "version": "1.0.0",
+  "description": "AI-powered photo and video verification frontend application",
+  "author": "DeepCheck Team",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

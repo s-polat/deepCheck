@@ -1,7 +1,18 @@
-<div class="container my-5">
-  <div class="card shadow-lg p-4">
-    <h3 class="text-center mb-4 fw-bold">DeepCheck</h3>
-    <p class="text-center text-muted">AI destekli fotoğraf ve video doğrulama aracı</p>
+<div class="container-fluid px-3 py-4">
+  <div class="card shadow-lg p-3 p-md-4">
+    <h3 class="text-center mb-3 fw-bold fs-4 fs-md-3">DeepCheck</h3>
+    <p class="text-center text-muted mb-2 small">AI destekli fotoğraf ve video doğrulama aracı</p>
+    
+    <!-- Backend Durum Göstergesi -->
+    <div class="text-center mb-4">
+      <span class="badge" [ngClass]="backendAvailable ? 'bg-success' : 'bg-warning'">
+        <i class="fas" [ngClass]="backendAvailable ? 'fa-check-circle' : 'fa-exclamation-triangle'"></i>
+        {{ backendAvailable ? 'AI Analiz Aktif' : 'Demo Modu' }}
+      </span>
+      <small class="d-block text-muted mt-1" *ngIf="!backendAvailable">
+        Backend bağlantısı yok, simülasyon çalışıyor
+      </small>
+    </div>
 
     <ul class="nav nav-tabs mb-4" id="uploadTabs" role="tablist">
       <li class="nav-item" role="presentation">
@@ -16,41 +27,185 @@
       <!-- Dosya Yükleme -->
       <div class="tab-pane fade show active" id="file-pane" role="tabpanel" aria-labelledby="file-tab">
         <div
-          class="border rounded p-5 text-center bg-light upload-box"
+          class="border rounded p-3 p-md-5 text-center bg-light upload-box"
+          [class.border-danger]="errorMessage"
+          [class.border-success]="fileName && !errorMessage"
+          [class.bg-success-subtle]="fileName && !errorMessage"
           (drop)="onDrop($event)"
           (dragover)="onDragOver($event)"
         >
-          <p class="text-muted mb-3">Sürükle & bırak veya tıklayarak yükle</p>
-          <input type="file" accept="image/*,video/*" (change)="onFileSelected($event)" />
-          <div *ngIf="fileName" class="mt-3">
-            <strong>Seçilen dosya:</strong> {{ fileName }}
+          <p class="text-muted mb-3 small">Sürükle & bırak veya tıklayarak yükle</p>
+          
+          <!-- Dosya kısıtlamaları bilgilendirmesi -->
+          <div class="mb-3">
+            <small class="text-muted d-block">📷 Fotoğraflar: JPEG, PNG, GIF, WebP</small>
+            <small class="text-muted d-block">(max 10MB)</small>
+            <small class="text-muted d-block mt-1">🎥 Videolar: MP4, AVI, MOV, WMV, FLV, WebM</small>
+            <small class="text-muted d-block">(max 30MB)</small>
+          </div>
+          
+          <input type="file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm" (change)="onFileSelected($event)" />
+          
+          <!-- Hata mesajı -->
+          <div *ngIf="errorMessage" class="alert alert-danger mt-3" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> {{ errorMessage }}
+          </div>
+          
+          <!-- Başarılı dosya seçimi -->
+          <div *ngIf="fileName && !errorMessage" class="mt-3 alert alert-success">
+            <div class="d-flex align-items-start gap-2">
+              <div class="flex-grow-1" style="min-width: 0; overflow: hidden;">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-check-circle me-2"></i>
+                  <strong>{{ getFileType() }}</strong>
+                </div>
+                <div class="mt-2" style="overflow: hidden;">
+                  <small class="text-break d-block" style="word-break: break-all; overflow-wrap: break-word;">
+                    <strong>Dosya:</strong> {{ fileName }}
+                  </small><br>
+                  <small><strong>Boyut:</strong> {{ getFileSize() }}</small>
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center" (click)="clearFile()">
+                  <span class="d-inline d-md-none">✕</span>
+                  <span class="d-none d-md-inline">
+                    <i class="fas fa-times me-1"></i>Temizle
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Link Girişi -->
       <div class="tab-pane fade" id="link-pane" role="tabpanel" aria-labelledby="link-tab">
-        <div class="input-group">
+        
+        <!-- Desteklenen platformlar bilgilendirmesi -->
+        <div class="mb-3 p-3 bg-light rounded">
+          <h6 class="mb-2">🌐 Desteklenen Platformlar:</h6>
+          <div class="row">
+            <div class="col-md-6">
+              <small class="text-muted d-block">📱 YouTube, Instagram, TikTok</small>
+              <small class="text-muted d-block">🐦 Twitter/X, Facebook</small>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted d-block">🎥 Vimeo, DailyMotion</small>
+              <small class="text-muted d-block">📁 Direkt medya dosyaları</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Örnek URL'ler -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Örnek URL'ler:</label>
+          <div class="row g-2">
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap" 
+                      (click)="setExampleUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">
+                <small>📺 YouTube</small>
+              </button>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
+                      (click)="setExampleUrl('https://youtu.be/dQw4w9WgXcQ')">
+                <small>📺 YT Short</small>
+              </button>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
+                      (click)="setExampleUrl('https://www.instagram.com/p/ABC123def456/')">
+                <small>📱 Instagram</small>
+              </button>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
+                      (click)="setExampleUrl('https://www.tiktok.com/@user/video/1234567890')">
+                <small>🎵 TikTok</small>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- URL Input (Tek alan, tüm ekran boyutları için) -->
+        <div class="mb-3">
           <input
             type="text"
             class="form-control"
-            placeholder="Medya bağlantısı girin (örneğin: https://...)"
+            [class.is-invalid]="linkErrorMessage"
+            [class.is-valid]="isValidUrl && mediaUrl"
+            placeholder="Medya bağlantısı girin (örneğin: https://www.youtube.com/watch?v=...)"
             [(ngModel)]="mediaUrl"
+            (input)="onUrlInput()"
           />
-          <button class="btn btn-outline-primary" (click)="analyzeLink()">Analiz Et</button>
+        </div>
+
+        <!-- URL Hata mesajı -->
+        <div *ngIf="linkErrorMessage" class="alert alert-danger mt-3" role="alert">
+          <i class="fas fa-exclamation-triangle"></i> {{ linkErrorMessage }}
+        </div>
+
+        <!-- URL Başarı mesajı -->
+        <div *ngIf="isValidUrl && mediaUrl && !linkErrorMessage" class="alert alert-success mt-3" role="alert">
+          <div class="d-flex align-items-start gap-2">
+            <div class="flex-grow-1" style="min-width: 0; overflow: hidden;">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>{{ getPlatformInfo() }}</strong>
+              </div>
+              <div class="mt-2" style="overflow: hidden;">
+                <small class="text-break d-block" style="word-break: break-all; overflow-wrap: break-word;">
+                  <strong>URL:</strong> {{ mediaUrl }}
+                </small>
+              </div>
+            </div>
+            <div class="flex-shrink-0">
+              <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center" (click)="clearUrl()">
+                <span class="d-inline d-md-none">✕</span>
+                <span class="d-none d-md-inline">
+                  <i class="fas fa-times me-1"></i>Temizle
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Güvenlik bilgilendirmesi -->
+        <div class="mt-3">
+          <small class="text-muted">
+            <i class="fas fa-shield-alt"></i> 
+            Güvenlik: Sadece güvenilir platformlardan ve HTTPS protokolü ile bağlantılar kabul edilir.
+          </small>
         </div>
       </div>
     </div>
 
     <div class="text-center mt-4">
-      <button class="btn btn-primary px-4" (click)="analyzeFile()" [disabled]="!selectedFile && !mediaUrl">
+      <button class="btn btn-primary px-4" 
+              (click)="startAnalysis()" 
+              [disabled]="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage">
         🚀 Analiz Et
       </button>
+      <div *ngIf="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage" class="text-muted mt-2">
+        <small>
+          <span *ngIf="!selectedFile && !isValidUrl">Geçerli bir dosya seçin veya medya bağlantısı girin</span>
+          <span *ngIf="errorMessage">Dosya hatası var</span>
+          <span *ngIf="linkErrorMessage">URL hatası var</span>
+        </small>
+      </div>
     </div>
 
-    <div *ngIf="loading" class="text-center mt-3">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p>Analiz ediliyor...</p>
+    <div *ngIf="loading" class="text-center mt-4">
+      <div class="d-flex flex-column align-items-center">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="text-center">
+          <h6 class="text-primary mb-2">🤖 AI Analiz Ediliyor</h6>
+          <p class="text-muted small mb-0">Bu işlem birkaç saniye sürebilir...</p>
+        </div>
+      </div>
     </div>
 
     <app-result-view *ngIf="result" [result]="result"></app-result-view>
