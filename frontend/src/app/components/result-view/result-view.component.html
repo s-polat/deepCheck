@@ -1,0 +1,10 @@
+<div class="card mt-4 shadow-sm border-success" *ngIf="result">
+  <div class="card-body text-center">
+    <h5 class="card-title">Sonuç</h5>
+    <p class="mb-1"><strong>AI Üretimi:</strong> {{ result.is_ai_generated ? 'Evet' : 'Hayır' }}</p>
+    <p class="text-muted mb-0">
+      Güven oranı: {{ (result.confidence * 100) | number:'1.0-0' }}%
+    </p>
+  </div>
+</div>
+

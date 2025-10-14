@@ -32,14 +32,12 @@
               }
             ],
             "styles": [
+               "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "src/styles.scss"
             ],
-            "scripts": [],
-            "server": "src/main.server.ts",
-            "prerender": false,
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            "scripts": [
+              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -105,6 +103,6 @@
     }
   },
   "cli": {
-    "analytics": "41cfb2f5-b83b-47eb-bfd9-e966b18dedba"
+    "analytics": false
   }
 }

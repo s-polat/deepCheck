@@ -1,0 +1,59 @@
+<div class="container my-5">
+  <div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4 fw-bold">DeepCheck</h3>
+    <p class="text-center text-muted">AI destekli fotoğraf ve video doğrulama aracı</p>
+
+    <ul class="nav nav-tabs mb-4" id="uploadTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-pane" type="button" role="tab" aria-controls="file-pane" aria-selected="true">📁 Dosya Yükle</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="link-tab" data-bs-toggle="tab" data-bs-target="#link-pane" type="button" role="tab" aria-controls="link-pane" aria-selected="false">🔗 Link Gir</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Dosya Yükleme -->
+      <div class="tab-pane fade show active" id="file-pane" role="tabpanel" aria-labelledby="file-tab">
+        <div
+          class="border rounded p-5 text-center bg-light upload-box"
+          (drop)="onDrop($event)"
+          (dragover)="onDragOver($event)"
+        >
+          <p class="text-muted mb-3">Sürükle & bırak veya tıklayarak yükle</p>
+          <input type="file" accept="image/*,video/*" (change)="onFileSelected($event)" />
+          <div *ngIf="fileName" class="mt-3">
+            <strong>Seçilen dosya:</strong> {{ fileName }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Link Girişi -->
+      <div class="tab-pane fade" id="link-pane" role="tabpanel" aria-labelledby="link-tab">
+        <div class="input-group">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Medya bağlantısı girin (örneğin: https://...)"
+            [(ngModel)]="mediaUrl"
+          />
+          <button class="btn btn-outline-primary" (click)="analyzeLink()">Analiz Et</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-primary px-4" (click)="analyzeFile()" [disabled]="!selectedFile && !mediaUrl">
+        🚀 Analiz Et
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="text-center mt-3">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p>Analiz ediliyor...</p>
+    </div>
+
+    <app-result-view *ngIf="result" [result]="result"></app-result-view>
+  </div>
+</div>
+
