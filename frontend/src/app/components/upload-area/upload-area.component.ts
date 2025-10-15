@@ -1,12 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ResultViewComponent } from '../result-view/result-view.component';
 import { ApiService, AnalysisResult } from '../../services/api.service';
+import { SimpleLanguageService } from '../../services/simple-language.service';
+import { ResultService } from '../../services/result.service';
 
 @Component({
   selector: 'app-upload-area',
-  imports: [CommonModule, FormsModule, ResultViewComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './upload-area.component.html',
   styleUrl: './upload-area.component.scss'
 })
@@ -43,7 +44,11 @@ export class UploadAreaComponent implements OnInit {
     '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'
   ];
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    public langService: SimpleLanguageService,
+    private resultService: ResultService
+  ) {}
 
   ngOnInit() {
     // Backend durumunu kontrol et
@@ -86,7 +91,7 @@ export class UploadAreaComponent implements OnInit {
     const isVideo = this.ALLOWED_VIDEO_TYPES.includes(file.type);
     
     if (!isImage && !isVideo) {
-      this.errorMessage = 'Sadece fotoğraf (JPEG, PNG, GIF, WebP) ve video (MP4, AVI, MOV, WMV, FLV, WebM) dosyaları yükleyebilirsiniz.';
+      this.errorMessage = this.langService.translate('error.file.type.invalid');
       this.selectedFile = null;
       this.fileName = '';
       return;
@@ -94,14 +99,14 @@ export class UploadAreaComponent implements OnInit {
 
     // Dosya boyutu kontrolü
     if (isImage && file.size > this.MAX_IMAGE_SIZE) {
-      this.errorMessage = 'Fotoğraf dosyaları en fazla 10MB olabilir.';
+      this.errorMessage = this.langService.translate('error.image.size.limit');
       this.selectedFile = null;
       this.fileName = '';
       return;
     }
 
     if (isVideo && file.size > this.MAX_VIDEO_SIZE) {
-      this.errorMessage = 'Video dosyaları en fazla 30MB olabilir.';
+      this.errorMessage = this.langService.translate('error.video.size.limit');
       this.selectedFile = null;
       this.fileName = '';
       return;
@@ -131,7 +136,7 @@ export class UploadAreaComponent implements OnInit {
       
       // Protokol kontrolü
       if (!['http:', 'https:'].includes(url.protocol)) {
-        this.linkErrorMessage = 'URL sadece HTTP veya HTTPS protokolü kullanabilir.';
+        this.linkErrorMessage = this.langService.translate('error.url.protocol.invalid');
         return;
       }
 
@@ -155,7 +160,7 @@ export class UploadAreaComponent implements OnInit {
 
       // URL uzunluk kontrolü
       if (this.mediaUrl.length > 2048) {
-        this.linkErrorMessage = 'URL çok uzun (maksimum 2048 karakter).';
+        this.linkErrorMessage = this.langService.translate('error.url.too.long');
         return;
       }
 
@@ -170,13 +175,13 @@ export class UploadAreaComponent implements OnInit {
       ];
 
       if (dangerousPatterns.some(pattern => pattern.test(this.mediaUrl))) {
-        this.linkErrorMessage = 'URL güvenli olmayan içerik barındırıyor.';
+        this.linkErrorMessage = this.langService.translate('error.url.unsafe.content');
         return;
       }
 
       this.isValidUrl = true;
     } catch (error) {
-      this.linkErrorMessage = 'Geçersiz URL formatı. Örnek: https://www.youtube.com/watch?v=...';
+      this.linkErrorMessage = this.langService.translate('error.url.invalid.format');
     }
   }
 
@@ -231,6 +236,7 @@ export class UploadAreaComponent implements OnInit {
             this.loading = false;
             if (response.success && response.result) {
               this.result = response.result;
+              this.resultService.setResult(response.result);
             } else {
               this.errorMessage = response.error || 'Analiz sırasında bir hata oluştu.';
             }
@@ -267,6 +273,7 @@ export class UploadAreaComponent implements OnInit {
           }
         }
       };
+      this.resultService.setResult(this.result);
       this.loading = false;
     }, 2000);
   }
@@ -284,6 +291,7 @@ export class UploadAreaComponent implements OnInit {
             this.loading = false;
             if (response.success && response.result) {
               this.result = response.result;
+              this.resultService.setResult(response.result);
             } else {
               this.linkErrorMessage = response.error || 'URL analizi sırasında bir hata oluştu.';
             }
@@ -322,11 +330,11 @@ export class UploadAreaComponent implements OnInit {
     if (!this.selectedFile) return '';
     
     if (this.ALLOWED_IMAGE_TYPES.includes(this.selectedFile.type)) {
-      return '📷 Fotoğraf';
+      return this.langService.translate('file.type.photo');
     } else if (this.ALLOWED_VIDEO_TYPES.includes(this.selectedFile.type)) {
-      return '🎥 Video';
+      return this.langService.translate('file.type.video');
     }
-    return '📄 Dosya';
+    return this.langService.translate('file.type.file');
   }
 
   // URL'den platform bilgisini çıkar
@@ -374,7 +382,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'YouTube ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+          errorMessage: this.langService.translate('error.youtube.homepage')
         };
       }
       
@@ -384,7 +392,7 @@ export class UploadAreaComponent implements OnInit {
         if (!videoId || videoId.length !== 11) {
           return {
             isValid: false,
-            errorMessage: 'Geçerli bir YouTube video bağlantısı girin. Örnek: https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+            errorMessage: this.langService.translate('error.youtube.video.invalid')
           };
         }
       } else if (pathname.startsWith('/shorts/')) {
@@ -392,21 +400,20 @@ export class UploadAreaComponent implements OnInit {
         if (!shortId || shortId.length < 10) {
           return {
             isValid: false,
-            errorMessage: 'Geçerli bir YouTube Shorts bağlantısı girin.'
+            errorMessage: this.langService.translate('error.youtube.shorts.invalid')
           };
         }
       } else if (pathname.startsWith('/embed/')) {
         const embedId = pathname.split('/embed/')[1];
-        if (!embedId || embedId.length !== 11) {
-          return {
-            isValid: false,
-            errorMessage: 'Geçerli bir YouTube embed bağlantısı girin.'
-          };
+        if (!embedId || embedId.length !== 11) {        return {
+          isValid: false,
+          errorMessage: this.langService.translate('error.youtube.embed.invalid')
+        };
         }
       } else {
         return {
           isValid: false,
-          errorMessage: 'Sadece YouTube video, shorts veya embed bağlantıları kabul edilir.'
+          errorMessage: this.langService.translate('error.youtube.format.invalid')
         };
       }
     }
@@ -417,7 +424,7 @@ export class UploadAreaComponent implements OnInit {
       if (!videoId || videoId.length !== 11) {
         return {
           isValid: false,
-          errorMessage: 'Geçerli bir YouTube kısa bağlantısı girin. Örnek: https://youtu.be/dQw4w9WgXcQ'
+          errorMessage: this.langService.translate('error.youtu.be.invalid')
         };
       }
     }
@@ -556,7 +563,7 @@ export class UploadAreaComponent implements OnInit {
       if (!isDomainAllowed) {
         return {
           isValid: false,
-          errorMessage: 'Bu domain desteklenmiyor. Desteklenen platformlar: YouTube, Instagram, TikTok, Twitter/X, Facebook, Vimeo, DailyMotion'
+          errorMessage: this.langService.translate('error.platform.unsupported')
         };
       }
     }
