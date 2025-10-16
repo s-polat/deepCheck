@@ -94,32 +94,78 @@
           </div>
         </div>
 
-        <!-- Örnek URL'ler -->
+        <!-- Örnek URL'ler (Best Practice: Static, reliable examples) -->
         <div class="example-urls mb-3">
           <label class="form-label fw-bold small">{{ langService.translate('examples.urls') }}</label>
           <div class="row g-2">
+            <!-- Social Media -->
+            <div class="col-12 mb-1">
+              <small class="text-muted">📱 Social Media Platforms</small>
+            </div>
             <div class="col-6 col-md-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap" 
-                      (click)="setExampleUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">
+              <button type="button" class="btn btn-sm btn-outline-primary w-100 text-nowrap" 
+                      (click)="setExampleUrl('youtube')"
+                      title="YouTube video format">
                 <small>📺 YouTube</small>
               </button>
             </div>
             <div class="col-6 col-md-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
-                      (click)="setExampleUrl('https://youtu.be/dQw4w9WgXcQ')">
-                <small>📺 YT Short</small>
-              </button>
-            </div>
-            <div class="col-6 col-md-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
-                      (click)="setExampleUrl('https://www.instagram.com/p/ABC123def456/')">
+              <button type="button" class="btn btn-sm btn-outline-primary w-100 text-nowrap"
+                      (click)="setExampleUrl('instagram')"
+                      title="Instagram post format">
                 <small>📱 Instagram</small>
               </button>
             </div>
             <div class="col-6 col-md-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
-                      (click)="setExampleUrl('https://www.tiktok.com/@user/video/1234567890')">
+              <button type="button" class="btn btn-sm btn-outline-primary w-100 text-nowrap"
+                      (click)="setExampleUrl('tiktok')"
+                      title="TikTok video format">
                 <small>🎵 TikTok</small>
+              </button>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-primary w-100 text-nowrap"
+                      (click)="setExampleUrl('twitter')"
+                      title="Twitter post format">
+                <small>🐦 Twitter</small>
+              </button>
+            </div>
+
+            <!-- AI Platforms -->
+            <div class="col-12 mb-1 mt-2">
+              <small class="text-muted">🤖 AI Platforms</small>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-warning w-100 text-nowrap"
+                      (click)="setExampleUrl('artlist')"
+                      title="Artlist AI generated content">
+                <small>🤖 Artlist</small>
+              </button>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-warning w-100 text-nowrap"
+                      (click)="setExampleUrl('leonardo')"
+                      title="Leonardo AI generated content">
+                <small>🎨 Leonardo</small>
+              </button>
+            </div>
+
+            <!-- Direct Media -->
+            <div class="col-12 mb-1 mt-2">
+              <small class="text-muted">🌐 Direct Media Files</small>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-nowrap"
+                      (click)="setExampleUrl('directImage')"
+                      title="Direct image file URL">
+                <small>🖼️ Image File</small>
+              </button>
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-sm btn-outline-success w-100 text-nowrap"
+                      (click)="setExampleUrl('vimeo')"
+                      title="Vimeo video format">
+                <small>🎬 Vimeo</small>
               </button>
             </div>
           </div>
@@ -179,16 +225,60 @@
     </div>
 
     <div class="text-center mt-4">
-      <button class="btn btn-primary px-4" 
-              (click)="startAnalysis()" 
-              [disabled]="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage">
-        {{ langService.translate('button.analyze') }}
-      </button>
+      <div class="btn-group gap-2" role="group">
+        <button class="btn px-4" 
+                (click)="startAnalysis()" 
+                [disabled]="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage || loading"
+                [ngClass]="isAnalyzed ? 'btn-success' : 'btn-primary'"
+                [title]="isAnalyzed ? 'File already analyzed (cached result)' : 'Analyze file/URL'">
+          <span *ngIf="!loading">
+            <i class="fas" [ngClass]="isAnalyzed ? 'fa-check me-1' : 'fa-search me-1'"></i>
+            {{ isAnalyzed ? 'Analyzed ✓' : langService.translate('button.analyze') }}
+          </span>
+          <span *ngIf="loading">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Analyzing...
+          </span>
+        </button>
+        
+        <!-- Consistency Check Button (only for files) -->
+        <button class="btn px-3" 
+                *ngIf="selectedFile && !errorMessage"
+                (click)="startConsistencyCheck()" 
+                [disabled]="loading"
+                [ngClass]="isConsistencyChecked ? 'btn-success' : 'btn-outline-warning'"
+                [title]="isConsistencyChecked ? 'Consistency check already performed (cached)' : 'Run multiple analyses for consistency check'">
+          <i class="fas" [ngClass]="isConsistencyChecked ? 'fa-check' : 'fa-sync-alt'" class="me-1"></i>
+          <span class="d-none d-md-inline">
+            {{ isConsistencyChecked ? 'Checked ✓' : 'Consistency Check' }}
+          </span>
+          <span class="d-inline d-md-none">
+            {{ isConsistencyChecked ? '✓' : '3x' }}
+          </span>
+        </button>
+      </div>
+      
       <div *ngIf="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage" class="text-muted mt-2">
         <small>
           <span *ngIf="!selectedFile && !isValidUrl">{{ langService.translate('error.no.file.url') }}</span>
           <span *ngIf="errorMessage">{{ langService.translate('error.file.error') }}</span>
           <span *ngIf="linkErrorMessage">{{ langService.translate('error.url.error') }}</span>
+        </small>
+      </div>
+      
+      <!-- Cache & Analysis Info -->
+      <div *ngIf="selectedFile && !errorMessage" class="text-muted mt-2">
+        <div *ngIf="isAnalyzed || isConsistencyChecked" class="mb-1">
+          <small class="text-success">
+            <i class="fas fa-database me-1"></i>
+            <span *ngIf="isAnalyzed && isConsistencyChecked">Both analyses cached - no additional API costs</span>
+            <span *ngIf="isAnalyzed && !isConsistencyChecked">Analysis cached - consistency check available</span>
+            <span *ngIf="!isAnalyzed && isConsistencyChecked">Consistency check cached - regular analysis available</span>
+          </small>
+        </div>
+        <small *ngIf="!isAnalyzed && !isConsistencyChecked">
+          <i class="fas fa-shield-alt me-1"></i>
+          <strong>Consistency Check</strong> runs 3 analyses and provides a reliability score for more trustworthy results
         </small>
       </div>
     </div>

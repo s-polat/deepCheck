@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService, AnalysisResult } from '../../services/api.service';
 import { SimpleLanguageService } from '../../services/simple-language.service';
 import { ResultService } from '../../services/result.service';
+import { URL_TEMPLATES, getTemplateUrl, PlatformTemplate } from '../../config/url-templates.config';
 
 @Component({
   selector: 'app-upload-area',
@@ -22,6 +23,13 @@ export class UploadAreaComponent implements OnInit {
   isValidUrl: boolean = false;
   backendAvailable: boolean = false;
 
+  // Cache sistemi için
+  private analysisCache = new Map<string, AnalysisResult>();
+  private consistencyCache = new Map<string, AnalysisResult>();
+  private currentFileHash: string = '';
+  public isAnalyzed: boolean = false;
+  public isConsistencyChecked: boolean = false;
+
   // Dosya kısıtlamaları
   private readonly MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
   private readonly MAX_VIDEO_SIZE = 30 * 1024 * 1024; // 30MB
@@ -36,13 +44,28 @@ export class UploadAreaComponent implements OnInit {
     'twitter.com', 'www.twitter.com', 'x.com', 'www.x.com',
     'facebook.com', 'www.facebook.com',
     'vimeo.com', 'www.vimeo.com',
-    'dailymotion.com', 'www.dailymotion.com'
+    'dailymotion.com', 'www.dailymotion.com',
+    // Image hosting sites
+    'imgur.com', 'i.imgur.com',
+    'images.unsplash.com', 'unsplash.com',
+    'via.placeholder.com',
+    'picsum.photos',
+    'cdn.pixabay.com',
+    'images.pexels.com',
+    // AI Image platforms
+    'artlist.io',
+    'leonardo.ai',
+    'midjourney.com',
+    'openai.com'
   ];
   
   private readonly ALLOWED_EXTENSIONS = [
     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
     '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'
   ];
+
+  // URL Templates imported from config (best practice: centralized configuration)
+  public readonly urlTemplates = URL_TEMPLATES;
 
   constructor(
     private apiService: ApiService,
@@ -63,7 +86,7 @@ export class UploadAreaComponent implements OnInit {
       },
       error: (error) => {
         this.backendAvailable = false;
-        console.log('Backend bağlantısı yok, demo modda çalışılıyor');
+        console.log('Backend bağlantısı yok, lokal demo modda çalışılıyor');
       }
     });
   }
@@ -116,10 +139,71 @@ export class UploadAreaComponent implements OnInit {
     this.selectedFile = file;
     this.fileName = file.name;
     this.errorMessage = '';
+    
+    // Update cache state for new file
+    this.updateFileState(file);
   }
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
+  }
+
+  // Cache & Hash Utility Methods
+  private async generateFileHash(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private getCacheKey(fileHash: string, type: 'analysis' | 'consistency'): string {
+    return `${type}_${fileHash}_${this.fileName || 'unknown'}`;
+  }
+
+  private async updateFileState(file: File) {
+    this.currentFileHash = await this.generateFileHash(file);
+    
+    // Check if this file has been analyzed before
+    const analysisKey = this.getCacheKey(this.currentFileHash, 'analysis');
+    const consistencyKey = this.getCacheKey(this.currentFileHash, 'consistency');
+    
+    this.isAnalyzed = this.analysisCache.has(analysisKey);
+    this.isConsistencyChecked = this.consistencyCache.has(consistencyKey);
+
+    console.log(`📝 File State Update:`, {
+      hash: this.currentFileHash.substring(0, 8) + '...',
+      analyzed: this.isAnalyzed,
+      consistency_checked: this.isConsistencyChecked
+    });
+
+    // Show cached result if available
+    if (this.isAnalyzed) {
+      const cachedResult = this.analysisCache.get(analysisKey);
+      if (cachedResult) {
+        this.result = cachedResult;
+        this.resultService.setResult(cachedResult);
+        console.log('💾 Using cached analysis result');
+      }
+    }
+  }
+
+  private cacheAnalysisResult(result: AnalysisResult, type: 'analysis' | 'consistency') {
+    if (this.currentFileHash) {
+      const cacheKey = this.getCacheKey(this.currentFileHash, type);
+      
+      if (type === 'analysis') {
+        this.analysisCache.set(cacheKey, result);
+        this.isAnalyzed = true;
+      } else {
+        this.consistencyCache.set(cacheKey, result);
+        this.isConsistencyChecked = true;
+      }
+
+      console.log(`💾 Cached ${type} result for file:`, {
+        key: cacheKey.substring(0, 20) + '...',
+        confidence: result.confidence
+      });
+    }
   }
 
   // URL doğrulama
@@ -145,15 +229,23 @@ export class UploadAreaComponent implements OnInit {
       const pathname = url.pathname.toLowerCase();
       const searchParams = url.searchParams;
 
-      // Direkt medya dosyası kontrolü
+      // Direkt medya dosyası kontrolü (öncelikli)
+      // Query parametrelerini temizle ve sadece dosya yolunu kontrol et
+      const cleanPathname = pathname.split('?')[0].split('#')[0].toLowerCase();
       const isDirectMedia = this.ALLOWED_EXTENSIONS.some(ext => 
-        pathname.endsWith(ext)
+        cleanPathname.endsWith(ext.toLowerCase())
       );
 
-      // Platform spesifik içerik kontrolü
+      if (isDirectMedia) {
+        // Direkt medya dosyası ise diğer kontrolleri atla
+        this.isValidUrl = true;
+        return;
+      }
+
+      // Sosyal medya platform kontrolü (sadece direkt medya değilse)
       const contentValidation = this.validatePlatformContent(hostname, pathname, searchParams);
       
-      if (!contentValidation.isValid && !isDirectMedia) {
+      if (!contentValidation.isValid) {
         this.linkErrorMessage = contentValidation.errorMessage;
         return;
       }
@@ -189,9 +281,23 @@ export class UploadAreaComponent implements OnInit {
     this.validateUrl();
   }
 
-  setExampleUrl(url: string) {
-    this.mediaUrl = url;
-    this.validateUrl();
+  setExampleUrl(templateKey: string) {
+    // Get URL template based on key using centralized config
+    const template = getTemplateUrl(templateKey);
+    if (template) {
+      this.mediaUrl = template;
+      this.validateUrl();
+    }
+  }
+
+  // Method to get example URL by key (for HTML template)
+  getExampleUrl(templateKey: string): string {
+    return getTemplateUrl(templateKey);
+  }
+
+  // Method to get template info for UI
+  getTemplateInfo(templateKey: string): PlatformTemplate | undefined {
+    return this.urlTemplates[templateKey];
   }
 
   clearFile() {
@@ -199,6 +305,11 @@ export class UploadAreaComponent implements OnInit {
     this.fileName = '';
     this.errorMessage = '';
     this.result = null;
+    
+    // Reset cache state
+    this.currentFileHash = '';
+    this.isAnalyzed = false;
+    this.isConsistencyChecked = false;
     
     // File input'u temizle
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -225,18 +336,33 @@ export class UploadAreaComponent implements OnInit {
 
   analyzeFile() {
     if (this.selectedFile && !this.errorMessage) {
+      // Check if file is already analyzed
+      if (this.isAnalyzed && this.currentFileHash) {
+        const cacheKey = this.getCacheKey(this.currentFileHash, 'analysis');
+        const cachedResult = this.analysisCache.get(cacheKey);
+        if (cachedResult) {
+          console.log('💾 File already analyzed, using cached result');
+          this.result = cachedResult;
+          this.resultService.setResult(cachedResult);
+          return;
+        }
+      }
+
       this.loading = true;
       this.result = null;
       this.errorMessage = '';
 
       if (this.backendAvailable) {
-        // Gerçek backend API çağrısı
+        // Backend API çağrısı (demo veya production modu backend'de belirleniyor)
         this.apiService.analyzeFile(this.selectedFile).subscribe({
           next: (response) => {
             this.loading = false;
             if (response.success && response.result) {
               this.result = response.result;
               this.resultService.setResult(response.result);
+              
+              // Cache the result
+              this.cacheAnalysisResult(response.result, 'analysis');
             } else {
               this.errorMessage = response.error || 'Analiz sırasında bir hata oluştu.';
             }
@@ -245,12 +371,12 @@ export class UploadAreaComponent implements OnInit {
             this.loading = false;
             console.error('API Hatası:', error);
             this.errorMessage = 'Backend bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
-            // Backend hata durumunda demo modu
+            // Fallback olarak frontend demo
             this.runDemoAnalysis();
           }
         });
       } else {
-        // Demo modu - backend yok
+        // Backend mevcut değil - frontend demo modu
         this.runDemoAnalysis();
       }
     }
@@ -274,6 +400,9 @@ export class UploadAreaComponent implements OnInit {
         }
       };
       this.resultService.setResult(this.result);
+      
+      // Cache demo result too
+      this.cacheAnalysisResult(this.result, 'analysis');
       this.loading = false;
     }, 2000);
   }
@@ -285,7 +414,7 @@ export class UploadAreaComponent implements OnInit {
       this.linkErrorMessage = '';
 
       if (this.backendAvailable) {
-        // Gerçek backend API çağrısı
+        // Backend API çağrısı (demo veya production modu backend'de belirleniyor)
         this.apiService.analyzeUrl(this.mediaUrl).subscribe({
           next: (response) => {
             this.loading = false;
@@ -300,15 +429,176 @@ export class UploadAreaComponent implements OnInit {
             this.loading = false;
             console.error('API Hatası:', error);
             this.linkErrorMessage = 'Backend bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
-            // Backend hata durumunda demo modu
+            // Fallback olarak frontend demo
             this.runDemoAnalysis();
           }
         });
       } else {
-        // Demo modu - backend yok
+        // Backend mevcut değil - frontend demo modu
         this.runDemoAnalysis();
       }
     }
+  }
+
+  // Consistency Check - Multiple analysis for same file
+  startConsistencyCheck() {
+    if (this.selectedFile && !this.errorMessage) {
+      // Check if consistency check is already done for this file
+      if (this.isConsistencyChecked && this.currentFileHash) {
+        const cacheKey = this.getCacheKey(this.currentFileHash, 'consistency');
+        const cachedResult = this.consistencyCache.get(cacheKey);
+        if (cachedResult) {
+          console.log('💾 Consistency check already performed, using cached result');
+          this.result = cachedResult;
+          this.resultService.setResult(cachedResult);
+          return;
+        }
+      }
+
+      this.loading = true;
+      this.result = null;
+      this.errorMessage = '';
+
+      console.log('🔄 Starting consistency check with 3 iterations...');
+
+      if (this.backendAvailable) {
+        // Backend consistency check API call
+        this.apiService.analyzeFileConsistency(this.selectedFile, 3).subscribe({
+          next: (response) => {
+            this.loading = false;
+            if (response.success && response.result) {
+              this.result = response.result;
+              this.resultService.setResult(response.result);
+              
+              // Cache the consistency result
+              this.cacheAnalysisResult(response.result, 'consistency');
+              console.log('✅ Consistency check completed:', response.result);
+            } else {
+              this.errorMessage = response.error || 'Consistency check failed.';
+            }
+          },
+          error: (error) => {
+            this.loading = false;
+            console.error('Consistency Check API Error:', error);
+            this.errorMessage = 'Consistency check failed. Falling back to demo analysis.';
+            // Fallback to demo consistency check
+            this.runDemoConsistencyCheck();
+          }
+        });
+      } else {
+        // Backend not available - frontend demo consistency check
+        this.runDemoConsistencyCheck();
+      }
+    }
+  }
+
+  private runDemoConsistencyCheck() {
+    console.log('🎭 Running demo smart consistency check...');
+    
+    // Simulate 3 analyses with controlled variations for demo
+    const iterations = 3;
+    const results: any[] = [];
+    
+    // Create more realistic demo scenarios
+    const scenario = Math.random();
+    
+    if (scenario < 0.4) {
+      // HIGH consistency scenario - all agree
+      const baseConfidence = 0.8 + (Math.random() * 0.1);
+      const isAI = Math.random() > 0.5;
+      for (let i = 0; i < iterations; i++) {
+        results.push({
+          is_ai_generated: isAI,
+          confidence: baseConfidence + (Math.random() * 0.1 - 0.05), // ±0.05 variation
+          analysis_number: i + 1
+        });
+      }
+    } else if (scenario < 0.7) {
+      // MEDIUM consistency scenario - mostly agree
+      const isAI = Math.random() > 0.5;
+      for (let i = 0; i < iterations; i++) {
+        results.push({
+          is_ai_generated: i === 0 ? !isAI : isAI, // One outlier
+          confidence: 0.6 + (Math.random() * 0.3), // 0.6-0.9 range
+          analysis_number: i + 1
+        });
+      }
+    } else {
+      // LOW consistency scenario - conflicting results
+      for (let i = 0; i < iterations; i++) {
+        results.push({
+          is_ai_generated: Math.random() > 0.5, // Random
+          confidence: 0.5 + (Math.random() * 0.4), // 0.5-0.9 range (high variation)
+          analysis_number: i + 1
+        });
+      }
+    }
+
+    // Smart consensus calculation (similar to backend)
+    const aiCount = results.filter(r => r.is_ai_generated).length;
+    const confidenceScores = results.map(r => r.confidence);
+    const minConfidence = Math.min(...confidenceScores);
+    const maxConfidence = Math.max(...confidenceScores);
+    const confidenceVariation = maxConfidence - minConfidence;
+    
+    const aiWeightedScore = results
+      .filter(r => r.is_ai_generated)
+      .reduce((sum, r) => sum + r.confidence, 0);
+    
+    const realWeightedScore = results
+      .filter(r => !r.is_ai_generated)
+      .reduce((sum, r) => sum + r.confidence, 0);
+    
+    // Determine final result with smart logic
+    let finalIsAI, finalConfidence, consistencyScore;
+    
+    if (confidenceVariation <= 0.15) {
+      finalIsAI = aiCount >= Math.ceil(results.length / 2);
+      finalConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+      consistencyScore = 'HIGH';
+    } else if (aiWeightedScore > realWeightedScore) {
+      finalIsAI = true;
+      finalConfidence = aiWeightedScore / Math.max(aiCount, 1);
+      consistencyScore = confidenceVariation <= 0.25 ? 'MEDIUM' : 'LOW';
+    } else {
+      finalIsAI = false;
+      finalConfidence = realWeightedScore / Math.max(results.length - aiCount, 1);
+      consistencyScore = confidenceVariation <= 0.25 ? 'MEDIUM' : 'LOW';
+    }
+
+    setTimeout(() => {
+      this.result = {
+        is_ai_generated: finalIsAI,
+        confidence: finalConfidence,
+        analysis_time: iterations * 2.0,
+        model_version: 'DeepCheck Demo Smart Consensus v1.0',
+        details: {
+          reasoning: `Smart consensus analysis: ${consistencyScore} reliability achieved. Decision based on weighted confidence scores from ${iterations} analyses.`,
+          artifacts: finalIsAI ? ['Potential AI artifacts detected', 'Pattern analysis completed'] : ['Natural image characteristics', 'Authentic details verified'],
+          probability_scores: {
+            'AI Generated': finalIsAI ? finalConfidence : (1 - finalConfidence),
+            'Real Image': finalIsAI ? (1 - finalConfidence) : finalConfidence,
+            'Edited Image': Math.min(0.2, confidenceVariation)
+          },
+          analysis_timestamp: new Date().toISOString(),
+          consistency_stats: {
+            total_analyses: iterations,
+            ai_detections: aiCount,
+            confidence_range: `${minConfidence.toFixed(3)} - ${maxConfidence.toFixed(3)}`,
+            confidence_variation: confidenceVariation.toFixed(3),
+            consistency_score: consistencyScore,
+            individual_results: results
+          }
+        }
+      };
+      
+      this.resultService.setResult(this.result);
+      
+      // Cache demo consistency result
+      this.cacheAnalysisResult(this.result, 'consistency');
+      this.loading = false;
+      console.log('✅ Demo consistency check completed');
+    }, 4000); // Longer delay to simulate multiple analyses
   }
 
   // Dosya boyutunu okunabilir formatta göster
@@ -359,11 +649,18 @@ export class UploadAreaComponent implements OnInit {
         return '🎬 Vimeo';
       } else if (hostname.includes('dailymotion.com')) {
         return '📹 DailyMotion';
+      } else if (hostname.includes('artlist.io')) {
+        return '🤖 Artlist AI';
       } else {
         // Direkt medya dosyası kontrolü
-        const pathname = url.pathname.toLowerCase();
-        if (this.ALLOWED_EXTENSIONS.some(ext => pathname.endsWith(ext))) {
-          return '📁 Direkt Medya';
+        const cleanPathname = url.pathname.split('?')[0].split('#')[0].toLowerCase();
+        if (this.ALLOWED_EXTENSIONS.some(ext => cleanPathname.endsWith(ext.toLowerCase()))) {
+          // Dosya türüne göre ikon belirle
+          if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].some(ext => cleanPathname.endsWith(ext))) {
+            return '🖼️ Direkt Resim';
+          } else {
+            return '🎬 Direkt Video';
+          }
         }
       }
     } catch (error) {
@@ -554,8 +851,38 @@ export class UploadAreaComponent implements OnInit {
       }
     }
     
-    // Diğer domain kontrolleri - sadece direkt medya dosyalarına izin ver
+    // AI Image Platform kontrolleri
+    else if (hostname.includes('artlist.io')) {
+      if (pathname === '/' || pathname === '') {
+        return {
+          isValid: false,
+          errorMessage: 'Artlist ana sayfası kabul edilmiyor. Lütfen belirli bir görsel bağlantısı girin.'
+        };
+      }
+      
+      // Artlist için daha esnek URL kontrolü - text-to-image ile başlıyorsa kabul et
+      if (!pathname.includes('/text-to-image') && !pathname.includes('/examples/') && !pathname.includes('/image/')) {
+        return {
+          isValid: false,
+          errorMessage: 'Sadece Artlist görsel örnekleri veya AI üretimi bağlantıları kabul edilir.'
+        };
+      }
+    }
+    
+    // Diğer domain kontrolleri - direkt medya dosyası veya bilinen domain kontrolü
     else {
+      // Önce direkt medya dosyası mı kontrol et
+      const cleanPathname = pathname.split('?')[0].split('#')[0].toLowerCase();
+      const isDirectMedia = this.ALLOWED_EXTENSIONS.some(ext => 
+        cleanPathname.endsWith(ext.toLowerCase())
+      );
+      
+      if (isDirectMedia) {
+        // Direkt medya dosyası ise domain kontrolü yapmadan kabul et
+        return { isValid: true, errorMessage: '' };
+      }
+      
+      // Direkt medya dosyası değilse, bilinen domainleri kontrol et
       const isDomainAllowed = this.ALLOWED_DOMAINS.some(domain => 
         hostname === domain || hostname.endsWith('.' + domain)
       );
@@ -569,5 +896,30 @@ export class UploadAreaComponent implements OnInit {
     }
     
     return { isValid: true, errorMessage: '' };
+  }
+
+  // Category-based platform getters for UI organization (returns arrays for *ngFor)
+  getSocialPlatforms(): Array<{key: string, template: PlatformTemplate}> {
+    return Object.entries(this.urlTemplates)
+      .filter(([_, template]) => template.category === 'social')
+      .map(([key, template]) => ({key, template}));
+  }
+
+  getVideoPlatforms(): Array<{key: string, template: PlatformTemplate}> {
+    return Object.entries(this.urlTemplates)
+      .filter(([_, template]) => template.category === 'video')
+      .map(([key, template]) => ({key, template}));
+  }
+
+  getAIPlatforms(): Array<{key: string, template: PlatformTemplate}> {
+    return Object.entries(this.urlTemplates)
+      .filter(([_, template]) => template.category === 'ai')
+      .map(([key, template]) => ({key, template}));
+  }
+
+  getDirectMediaPlatforms(): Array<{key: string, template: PlatformTemplate}> {
+    return Object.entries(this.urlTemplates)
+      .filter(([_, template]) => template.category === 'direct')
+      .map(([key, template]) => ({key, template}));
   }
 }
