@@ -31,7 +31,7 @@ app.use(helmet());
 app.use(compression());
 app.use(morgan('combined'));
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:4201', 'http://localhost:4202'],
+  origin: [process.env.FRONTEND_URL || 'http://localhost:4200', 'http://localhost:4201', 'http://localhost:4202'],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -54,7 +54,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 30 * 1024 * 1024, // 30MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit for images
   },
   fileFilter: (req, file, cb) => {
     // Allowed file types
@@ -73,7 +73,9 @@ const upload = multer({
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
+  console.log(`🏥 Health check request from: ${req.get('Origin') || 'Unknown'}`);
+  
+  const healthResponse = {
     status: 'healthy',
     message: 'DeepCheck API is running',
     timestamp: new Date().toISOString(),
@@ -85,7 +87,10 @@ app.get('/health', (req, res) => {
       file_upload: true,
       url_analysis: true
     }
-  });
+  };
+  
+  console.log(`✅ Sending health response:`, healthResponse);
+  res.json(healthResponse);
 });
 
 // Test endpoint for demo purposes

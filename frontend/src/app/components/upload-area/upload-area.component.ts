@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, AnalysisResult } from '../../services/api.service';
@@ -31,7 +31,7 @@ export class UploadAreaComponent implements OnInit {
   public isConsistencyChecked: boolean = false;
 
   // Dosya kısıtlamaları
-  private readonly MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  private readonly MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
   private readonly MAX_VIDEO_SIZE = 30 * 1024 * 1024; // 30MB
   private readonly ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   private readonly ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm'];
@@ -70,23 +70,32 @@ export class UploadAreaComponent implements OnInit {
   constructor(
     private apiService: ApiService,
     public langService: SimpleLanguageService,
-    private resultService: ResultService
+    private resultService: ResultService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    // Backend durumunu kontrol et
+    // Check backend status on component initialization
     this.checkBackendStatus();
+    
+    // Retry after 2 seconds to ensure connection
+    setTimeout(() => {
+      this.checkBackendStatus();
+    }, 2000);
   }
 
-  private checkBackendStatus() {
+  public checkBackendStatus() {
     this.apiService.getHealthStatus().subscribe({
       next: (response) => {
-        this.backendAvailable = response.status === 'healthy';
-        console.log('Backend durum:', response);
+        // Check if backend is healthy
+        this.backendAvailable = response && response.status === 'healthy';
+        
+        // Trigger change detection
+        this.cdr.detectChanges();
       },
       error: (error) => {
         this.backendAvailable = false;
-        console.log('Backend bağlantısı yok, lokal demo modda çalışılıyor');
+        this.cdr.detectChanges();
       }
     });
   }

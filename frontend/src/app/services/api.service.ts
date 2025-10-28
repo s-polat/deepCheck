@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout, catchError, of } from 'rxjs';
 
 export interface AnalysisResult {
   is_ai_generated: boolean;
@@ -73,7 +73,18 @@ export class ApiService {
 
   // Sistem durumu kontrolü
   getHealthStatus(): Observable<{ status: string; message: string }> {
-    return this.http.get<{ status: string; message: string }>('http://localhost:3000/health');
+    return this.http.get<{ status: string; message: string }>('http://localhost:3000/health', {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    }).pipe(
+      timeout(5000), // 5 second timeout
+      catchError(error => {
+        console.error('Health check failed:', error);
+        return of({ status: 'error', message: 'Backend connection failed' });
+      })
+    );
   }
 
   // Desteklenen dosya türlerini getir

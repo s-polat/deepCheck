@@ -254,9 +254,9 @@ export class SimpleLanguageService {
       'tr': 'Sadece fotoğraf (JPEG, PNG, GIF, WebP) ve video (MP4, AVI, MOV, WMV, FLV, WebM) dosyaları yükleyebilirsiniz.'
     },
     'error.image.size.limit': {
-      'en': 'Photo files can be maximum 10MB.',
-      'de': 'Foto-Dateien können maximal 10MB groß sein.',
-      'tr': 'Fotoğraf dosyaları en fazla 10MB olabilir.'
+      'en': 'Photo files can be maximum 5MB.',
+      'de': 'Foto-Dateien können maximal 5MB groß sein.',
+      'tr': 'Fotoğraf dosyaları en fazla 5MB olabilir.'
     },
     'error.video.size.limit': {
       'en': 'Video files can be maximum 30MB.',
