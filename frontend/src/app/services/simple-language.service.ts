@@ -504,6 +504,48 @@ export class SimpleLanguageService {
       'en': 'Only Artlist image examples or AI-generated content links are accepted.',
       'de': 'Nur Artlist-Bildbeispiele oder KI-generierte Inhaltslinks werden akzeptiert.',
       'tr': 'Sadece Artlist görsel örnekleri veya AI üretimi bağlantıları kabul edilir.'
+    },
+
+    // PWA Install Messages
+    'pwa.install.app': {
+      'en': 'Install App',
+      'de': 'App installieren',
+      'tr': 'Uygulamayı Yükle'
+    },
+    'pwa.install.title': {
+      'en': 'Install DeepCheck as an app',
+      'de': 'DeepCheck als App installieren',
+      'tr': 'DeepCheck\'i uygulama olarak yükle'
+    },
+    'pwa.share.result': {
+      'en': 'Share Result',
+      'de': 'Ergebnis teilen',
+      'tr': 'Sonucu Paylaş'
+    },
+    'pwa.copy.result': {
+      'en': 'Copy',
+      'de': 'Kopieren',
+      'tr': 'Kopyala'
+    },
+    'pwa.share.title': {
+      'en': 'Share result',
+      'de': 'Ergebnis teilen',
+      'tr': 'Sonucu paylaş'
+    },
+    'pwa.copy.title': {
+      'en': 'Copy to clipboard',
+      'de': 'In Zwischenablage kopieren',
+      'tr': 'Panoya kopyala'
+    },
+    'pwa.update.message': {
+      'en': 'A new version of DeepCheck is available. Would you like to update now?',
+      'de': 'Eine neue Version von DeepCheck ist verfügbar. Möchten Sie jetzt aktualisieren?',
+      'tr': 'DeepCheck\'in yeni bir sürümü mevcut. Şimdi güncellemek ister misiniz?'
+    },
+    'pwa.update.failed': {
+      'en': 'Update failed. Please try again later.',
+      'de': 'Update fehlgeschlagen. Bitte versuchen Sie es später erneut.',
+      'tr': 'Güncelleme başarısız. Lütfen daha sonra tekrar deneyin.'
     }
   };
 

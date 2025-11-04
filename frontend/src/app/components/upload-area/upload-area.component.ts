@@ -175,18 +175,12 @@ export class UploadAreaComponent implements OnInit {
     
     this.isAnalyzed = this.analysisCache.has(analysisKey);
 
-    console.log(`📝 File State Update:`, {
-      hash: this.currentFileHash.substring(0, 8) + '...',
-      analyzed: this.isAnalyzed
-    });
-
     // Show cached result if available
     if (this.isAnalyzed) {
       const cachedResult = this.analysisCache.get(analysisKey);
       if (cachedResult) {
         this.result = cachedResult;
         this.resultService.setResult(cachedResult);
-        console.log('💾 Using cached analysis result');
       }
     }
   }
@@ -197,11 +191,6 @@ export class UploadAreaComponent implements OnInit {
       
       this.analysisCache.set(cacheKey, result);
       this.isAnalyzed = true;
-
-      console.log(`💾 Cached analysis result for file:`, {
-        key: cacheKey.substring(0, 20) + '...',
-        confidence: result.confidence
-      });
     }
   }
 
@@ -339,7 +328,6 @@ export class UploadAreaComponent implements OnInit {
         const cacheKey = this.getCacheKey(this.currentFileHash);
         const cachedResult = this.analysisCache.get(cacheKey);
         if (cachedResult) {
-          console.log('💾 File already analyzed, using cached result');
           this.result = cachedResult;
           this.resultService.setResult(cachedResult);
           return;
@@ -367,7 +355,6 @@ export class UploadAreaComponent implements OnInit {
           },
           error: (error) => {
             this.loading = false;
-            console.error('API Hatası:', error);
             this.errorMessage = 'Backend bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
             // Fallback olarak frontend demo
             this.runDemoAnalysis();
@@ -425,7 +412,6 @@ export class UploadAreaComponent implements OnInit {
           },
           error: (error) => {
             this.loading = false;
-            console.error('API Hatası:', error);
             this.linkErrorMessage = 'Backend bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
             // Fallback olarak frontend demo
             this.runDemoAnalysis();

@@ -21,10 +21,7 @@ const CLOUDINARY_CONFIGURED = process.env.CLOUDINARY_CLOUD_NAME &&
                               process.env.CLOUDINARY_API_SECRET &&
                               process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name';
 
-console.log(`🔧 Configuration:
-  - Demo Mode: ${DEMO_MODE ? 'ON (OpenAI not configured)' : 'OFF'}
-  - Cloudinary: ${CLOUDINARY_CONFIGURED ? 'Configured' : 'Demo mode'}
-`);
+// Configuration loaded
 
 // Middleware
 app.use(helmet());
@@ -76,8 +73,6 @@ const upload = multer({
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  console.log(`🏥 Health check request from: ${req.get('Origin') || 'Unknown'}`);
-  
   const healthResponse = {
     status: 'healthy',
     message: 'DeepCheck API is running',
@@ -91,8 +86,6 @@ app.get('/health', (req, res) => {
       url_analysis: true
     }
   };
-  
-  console.log(`✅ Sending health response:`, healthResponse);
   res.json(healthResponse);
 });
 
@@ -265,12 +258,7 @@ async function analyzeWithAI(imageUrl) {
       // Parse JSON response from GPT-4
       const result = JSON.parse(content);
       
-      // Log analysis result for debugging
-      console.log(`📊 AI Analysis Result:`, {
-        is_ai_generated: result.is_ai_generated,
-        confidence: result.confidence,
-        reasoning_preview: result.reasoning?.substring(0, 100) + '...'
-      });
+      // Analysis completed successfully
 
       return {
         success: true,
@@ -316,13 +304,11 @@ async function analyzeWithAI(imageUrl) {
     
     // Handle different error types
     if (error.status === 429 || error.status === 401) {
-      console.log('🎭 Falling back to demo mode due to API quota/auth issue');
       return getDemoAnalysis();
     }
     
     // Handle URL download errors (invalid URLs, timeouts, etc.)
     if (error.status === 400 && error.message && error.message.includes('downloading')) {
-      console.log('🎭 Falling back to demo mode due to URL download issue:', error.message);
       return getDemoAnalysis();
     }
     
@@ -342,17 +328,12 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
       });
     }
 
-    console.log(`🔍 Analyzing file: ${req.file.originalname} (${req.file.size} bytes)`);
-
     // Demo mode - return simulated analysis
     if (DEMO_MODE || !CLOUDINARY_CONFIGURED) {
-      console.log('🎭 Running in demo mode');
-      
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const demoResult = getDemoAnalysis();
-      console.log(`📊 Demo analysis result: ${demoResult.result.is_ai_generated ? 'AI Generated' : 'Real'} (${Math.round(demoResult.result.confidence * 100)}% confidence)`);
       
       return res.json(demoResult);
     }
@@ -376,7 +357,7 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
       uploadStream.end(req.file.buffer);
     });
 
-    console.log('File uploaded to Cloudinary:', uploadResponse.public_id);
+    // File uploaded successfully
 
     // Analyze with OpenAI
     const analysisResult = await analyzeWithAI(uploadResponse.secure_url);
@@ -420,32 +401,24 @@ app.post('/api/analyze/url', async (req, res) => {
       });
     }
 
-    console.log(`Analyzing URL: ${url}`);
-
     // Demo mode - return simulated analysis
     if (DEMO_MODE) {
-      console.log('🎭 Running in demo mode for URL analysis');
-      
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const demoResult = getDemoAnalysis();
-      console.log(`📊 Demo URL analysis result: ${demoResult.result.is_ai_generated ? 'AI Generated' : 'Real'} (${Math.round(demoResult.result.confidence * 100)}% confidence)`);
       
       return res.json(demoResult);
     }
 
     // Check if URL is a direct media file or a web page
     const urlType = determineUrlType(url);
-    console.log(`🔍 URL Type detected: ${urlType}`);
 
     // Production mode with real OpenAI API
     try {
       const analysisResult = await analyzeWithAI(url);
       res.json(analysisResult);
     } catch (error) {
-      console.log('🎭 OpenAI analysis failed, falling back to demo mode:', error.message);
-      
       // If OpenAI fails (especially for web page URLs), fallback to demo mode
       const demoResult = getDemoAnalysis();
       demoResult.result.details.reasoning = `Analysis performed in demo mode. Original URL type: ${urlType}. Web page URLs may require manual review for complete accuracy.`;
@@ -491,20 +464,14 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 DeepCheck Backend API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔍 API endpoints:`);
-  console.log(`   POST /api/analyze/file - File upload analysis`);
-  console.log(`   POST /api/analyze/url - URL analysis`);
+  // Server started successfully
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');  
   process.exit(0);
 });

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepCheck - Offline</title>
+    <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        
+        .offline-container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .offline-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+        
+        h1 {
+            margin: 0 0 10px 0;
+            font-weight: 700;
+            font-size: 2rem;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            margin: 0 0 20px 0;
+            font-size: 0.9rem;
+        }
+        
+        .offline-message {
+            margin: 20px 0;
+            line-height: 1.6;
+            opacity: 0.8;
+        }
+        
+        .retry-button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+        
+        .retry-button:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            margin-top: 30px;
+            text-align: left;
+            opacity: 0.7;
+        }
+        
+        .features h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        .features ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .features li {
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 480px) {
+            .offline-container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .offline-icon {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h1>DeepCheck</h1>
+        <p class="subtitle">AI Photo & Video Verification</p>
+        
+        <div class="offline-message">
+            <p>You're currently offline. Some features may not be available, but you can still:</p>
+        </div>
+        
+        <div class="features">
+            <h3>Available Offline:</h3>
+            <ul>
+                <li>View previously analyzed results</li>
+                <li>Access cached content</li>
+                <li>Use the app interface</li>
+            </ul>
+        </div>
+        
+        <button class="retry-button" onclick="window.location.reload()">
+            Try Again
+        </button>
+        
+        <button class="retry-button" onclick="checkConnection()">
+            Check Connection
+        </button>
+    </div>
+
+    <script>
+        function checkConnection() {
+            if (navigator.onLine) {
+                document.querySelector('.offline-message p').textContent = 'Connection restored! Refreshing...';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                document.querySelector('.offline-message p').textContent = 'Still offline. Please check your internet connection.';
+            }
+        }
+
+        // Listen for online event
+        window.addEventListener('online', () => {
+            document.querySelector('.offline-message p').textContent = 'Connection restored! Refreshing...';
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+
+        // Auto-check connection every 10 seconds
+        setInterval(() => {
+            if (navigator.onLine) {
+                window.location.reload();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

@@ -3,10 +3,27 @@
   <div class="container-fluid">
     <!-- Mobile optimized header -->
     <header class="app-header">
-      <!-- Language selector -->
-      <div class="d-flex justify-content-end mb-2">
-        <div class="dropdown">
-          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+      <!-- Top bar with language selector and PWA install -->
+      <div class="d-flex justify-content-between align-items-center mb-2 header-buttons">
+        <!-- PWA Install Button -->
+        <div class="pwa-install-section d-flex align-items-center">
+          <button 
+            class="btn btn-primary btn-sm pwa-install-btn header-btn d-flex align-items-center justify-content-center" 
+            (click)="installApp()" 
+            [title]="langService.translate('pwa.install.title')">
+            <span class="d-none d-md-flex align-items-center">
+              <i class="fas fa-download me-1"></i>{{ langService.translate('pwa.install.app') }}
+            </span>
+            <span class="d-flex d-md-none pwa-mobile-icon">📱</span>
+          </button>
+        </div>
+        
+        <!-- Spacer -->
+        <div class="flex-grow-1"></div>
+        
+        <!-- Language selector -->
+        <div class="dropdown d-flex align-items-center">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle header-btn" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
             {{ langService.getCurrentLanguage().flag }}
             <span class="d-none d-md-inline ms-1">{{ langService.translate('select.language') }}</span>
           </button>

@@ -101,6 +101,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Share Actions -->
+    <div class="share-actions mt-3 text-center">
+      <div class="btn-group gap-2" role="group">
+        <button class="btn btn-outline-primary btn-sm" 
+                (click)="shareResult()" 
+                [title]="langService.translate('pwa.share.title')">
+          <i class="fas fa-share-alt me-1"></i>
+          <span class="d-none d-md-inline">{{ langService.translate('pwa.share.result') }}</span>
+          <span class="d-inline d-md-none">📤</span>
+        </button>
+        
+        <button class="btn btn-outline-secondary btn-sm" 
+                (click)="copyToClipboard()" 
+                [title]="langService.translate('pwa.copy.title')">
+          <i class="fas fa-copy me-1"></i>
+          <span class="d-none d-md-inline">{{ langService.translate('pwa.copy.result') }}</span>
+          <span class="d-inline d-md-none">📋</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 

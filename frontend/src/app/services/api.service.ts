@@ -60,7 +60,7 @@ export class ApiService {
     }).pipe(
       timeout(5000), // 5 second timeout
       catchError(error => {
-        console.error('Health check failed:', error);
+        // Health check failed
         return of({ status: 'error', message: 'Backend connection failed' });
       })
     );
