@@ -336,6 +336,174 @@ export class SimpleLanguageService {
       'en': 'Please enter a valid YouTube short link. Example: https://youtu.be/dQw4w9WgXcQ',
       'de': 'Bitte geben Sie einen gültigen YouTube-Kurzlink ein. Beispiel: https://youtu.be/dQw4w9WgXcQ',  
       'tr': 'Geçerli bir YouTube kısa bağlantısı girin. Örnek: https://youtu.be/dQw4w9WgXcQ'
+    },
+
+    // Cache and Analysis Status Messages
+    'analysis.cached': {
+      'en': 'Analysis cached - no additional API costs',
+      'de': 'Analyse gecacht - keine zusätzlichen API-Kosten',
+      'tr': 'Analiz önbelleğe alındı - ek API maliyeti yok'
+    },
+    'button.analyzed': {
+      'en': 'Analyzed ✓',
+      'de': 'Analysiert ✓',
+      'tr': 'Analiz Edildi ✓'
+    },
+    'analyzing.progress': {
+      'en': 'Analyzing...',
+      'de': 'Analysiert...',
+      'tr': 'Analiz ediliyor...'
+    },
+    'backend.connection.issue': {
+      'en': 'Backend connection issue detected. Using demo mode.',
+      'de': 'Backend-Verbindungsproblem erkannt. Demo-Modus wird verwendet.',
+      'tr': 'Backend bağlantı sorunu tespit edildi. Demo modu kullanılıyor.'
+    },
+    'analysis.file.already.analyzed': {
+      'en': 'File already analyzed (cached result)',
+      'de': 'Datei bereits analysiert (gecachtes Ergebnis)',
+      'tr': 'Dosya zaten analiz edildi (önbelleğe alınmış sonuç)'
+    },
+
+    // Platform Names
+    'platform.youtube': {
+      'en': '📺 YouTube',
+      'de': '📺 YouTube',
+      'tr': '📺 YouTube'
+    },
+    'platform.instagram': {
+      'en': '📷 Instagram',
+      'de': '📷 Instagram', 
+      'tr': '📷 Instagram'
+    },
+    'platform.tiktok': {
+      'en': '🎵 TikTok',
+      'de': '🎵 TikTok',
+      'tr': '🎵 TikTok'
+    },
+    'platform.twitter': {
+      'en': '🐦 Twitter/X',
+      'de': '🐦 Twitter/X',
+      'tr': '🐦 Twitter/X'
+    },
+    'platform.facebook': {
+      'en': '👥 Facebook',
+      'de': '👥 Facebook',
+      'tr': '👥 Facebook'
+    },
+    'platform.vimeo': {
+      'en': '🎬 Vimeo',
+      'de': '🎬 Vimeo',
+      'tr': '🎬 Vimeo'
+    },
+    'platform.dailymotion': {
+      'en': '📹 DailyMotion',
+      'de': '📹 DailyMotion',
+      'tr': '📹 DailyMotion'
+    },
+    'platform.direct.image': {
+      'en': '🖼️ Direct Image',
+      'de': '🖼️ Direktes Bild',
+      'tr': '🖼️ Direkt Görsel'
+    },
+    'platform.direct.video': {
+      'en': '🎥 Direct Video',
+      'de': '🎥 Direktes Video',
+      'tr': '🎥 Direkt Video'
+    },
+    'platform.webpage': {
+      'en': '🌐 Webpage',
+      'de': '🌐 Webseite',
+      'tr': '🌐 Web Sayfası'
+    },
+
+    // Instagram Error Messages
+    'error.instagram.homepage': {
+      'en': 'Instagram homepage is not accepted. Please enter a specific post link.',
+      'de': 'Instagram-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Beitragslink ein.',
+      'tr': 'Instagram ana sayfası kabul edilmiyor. Lütfen belirli bir gönderi bağlantısı girin.'
+    },
+    'error.instagram.post.invalid': {
+      'en': 'Only Instagram posts, reels, stories or IGTV links are accepted.',
+      'de': 'Nur Instagram-Beiträge, Reels, Storys oder IGTV-Links werden akzeptiert.',
+      'tr': 'Sadece Instagram gönderi, reel, hikaye veya IGTV bağlantıları kabul edilir.'
+    },
+    'error.instagram.link.invalid': {
+      'en': 'Please enter a valid Instagram post link.',
+      'de': 'Bitte geben Sie einen gültigen Instagram-Beitragslink ein.',
+      'tr': 'Geçerli bir Instagram gönderi bağlantısı girin.'
+    },
+
+    // TikTok Error Messages
+    'error.tiktok.homepage': {
+      'en': 'TikTok homepage is not accepted. Please enter a specific video link.',
+      'de': 'TikTok-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Videolink ein.',
+      'tr': 'TikTok ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+    },
+    'error.tiktok.video.invalid': {
+      'en': 'Only TikTok video links are accepted.',
+      'de': 'Nur TikTok-Videolinks werden akzeptiert.',
+      'tr': 'Sadece TikTok video bağlantıları kabul edilir.'
+    },
+
+    // Twitter/X Error Messages
+    'error.twitter.homepage': {
+      'en': 'Twitter homepage is not accepted. Please enter a specific tweet link.',
+      'de': 'Twitter-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Tweet-Link ein.',
+      'tr': 'Twitter ana sayfası kabul edilmiyor. Lütfen belirli bir tweet bağlantısı girin.'
+    },
+    'error.twitter.tweet.invalid': {
+      'en': 'Please enter a valid tweet link. Example: https://twitter.com/username/status/123456789',
+      'de': 'Bitte geben Sie einen gültigen Tweet-Link ein. Beispiel: https://twitter.com/username/status/123456789',
+      'tr': 'Geçerli bir tweet bağlantısı girin. Örnek: https://twitter.com/username/status/123456789'
+    },
+
+    // Facebook Error Messages
+    'error.facebook.homepage': {
+      'en': 'Facebook homepage is not accepted. Please enter a specific post link.',
+      'de': 'Facebook-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Beitragslink ein.',
+      'tr': 'Facebook ana sayfası kabul edilmiyor. Lütfen belirli bir gönderi bağlantısı girin.'
+    },
+    'error.facebook.post.invalid': {
+      'en': 'Only Facebook posts, photos or video links are accepted.',
+      'de': 'Nur Facebook-Beiträge, Foto- oder Videolinks werden akzeptiert.',
+      'tr': 'Sadece Facebook gönderi, fotoğraf veya video bağlantıları kabul edilir.'
+    },
+
+    // Vimeo Error Messages
+    'error.vimeo.homepage': {
+      'en': 'Vimeo homepage is not accepted. Please enter a specific video link.',
+      'de': 'Vimeo-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Videolink ein.',
+      'tr': 'Vimeo ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+    },
+    'error.vimeo.video.invalid': {
+      'en': 'Please enter a valid Vimeo video link. Example: https://vimeo.com/123456789',
+      'de': 'Bitte geben Sie einen gültigen Vimeo-Videolink ein. Beispiel: https://vimeo.com/123456789',
+      'tr': 'Geçerli bir Vimeo video bağlantısı girin. Örnek: https://vimeo.com/123456789'
+    },
+
+    // DailyMotion Error Messages
+    'error.dailymotion.homepage': {
+      'en': 'DailyMotion homepage is not accepted. Please enter a specific video link.',
+      'de': 'DailyMotion-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Videolink ein.',
+      'tr': 'DailyMotion ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+    },
+    'error.dailymotion.video.invalid': {
+      'en': 'Please enter a valid DailyMotion video link.',
+      'de': 'Bitte geben Sie einen gültigen DailyMotion-Videolink ein.',
+      'tr': 'Geçerli bir DailyMotion video bağlantısı girin.'
+    },
+
+    // Artlist Error Messages  
+    'error.artlist.homepage': {
+      'en': 'Artlist homepage is not accepted. Please enter a specific image link.',
+      'de': 'Artlist-Startseite wird nicht akzeptiert. Bitte geben Sie einen spezifischen Bildlink ein.',
+      'tr': 'Artlist ana sayfası kabul edilmiyor. Lütfen belirli bir görsel bağlantısı girin.'
+    },
+    'error.artlist.link.invalid': {
+      'en': 'Only Artlist image examples or AI-generated content links are accepted.',
+      'de': 'Nur Artlist-Bildbeispiele oder KI-generierte Inhaltslinks werden akzeptiert.',
+      'tr': 'Sadece Artlist görsel örnekleri veya AI üretimi bağlantıları kabul edilir.'
     }
   };
 

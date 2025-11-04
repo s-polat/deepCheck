@@ -15,7 +15,7 @@
       <!-- Connection Status Info -->
       <small class="text-muted mt-1" *ngIf="!backendAvailable" style="font-size: 11px;">
         <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-        Backend connection issue detected. Using demo mode.
+        {{ langService.translate('backend.connection.issue') }}
       </small>
     </div>
 
@@ -238,14 +238,14 @@
                 (click)="startAnalysis()" 
                 [disabled]="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage || loading"
                 [ngClass]="isAnalyzed ? 'btn-success' : 'btn-primary'"
-                [title]="isAnalyzed ? 'File already analyzed (cached result)' : 'Analyze file/URL'">
+                [title]="isAnalyzed ? langService.translate('analysis.file.already.analyzed') : langService.translate('button.analyze')">
           <span *ngIf="!loading">
             <i class="fas" [ngClass]="isAnalyzed ? 'fa-check me-1' : 'fa-search me-1'"></i>
-            {{ isAnalyzed ? 'Analyzed ✓' : langService.translate('button.analyze') }}
+            {{ isAnalyzed ? langService.translate('button.analyzed') : langService.translate('button.analyze') }}
           </span>
           <span *ngIf="loading">
             <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-            Analyzing...
+            {{ langService.translate('analyzing.progress') }}
           </span>
         </button>
         
@@ -265,7 +265,7 @@
         <div class="mb-1">
           <small class="text-success">
             <i class="fas fa-database me-1"></i>
-            Analysis cached - no additional API costs
+            {{ langService.translate('analysis.cached') }}
           </small>
         </div>
       </div>

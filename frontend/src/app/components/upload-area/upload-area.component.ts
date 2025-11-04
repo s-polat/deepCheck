@@ -475,19 +475,19 @@ export class UploadAreaComponent implements OnInit {
       const hostname = url.hostname.toLowerCase();
       
       if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-        return '📺 YouTube';
+        return this.langService.translate('platform.youtube');
       } else if (hostname.includes('instagram.com')) {
-        return '📱 Instagram';
+        return this.langService.translate('platform.instagram');
       } else if (hostname.includes('tiktok.com')) {
-        return '🎵 TikTok';
+        return this.langService.translate('platform.tiktok');
       } else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
-        return '🐦 Twitter/X';
+        return this.langService.translate('platform.twitter');
       } else if (hostname.includes('facebook.com')) {
-        return '📘 Facebook';
+        return this.langService.translate('platform.facebook');
       } else if (hostname.includes('vimeo.com')) {
-        return '🎬 Vimeo';
+        return this.langService.translate('platform.vimeo');
       } else if (hostname.includes('dailymotion.com')) {
-        return '📹 DailyMotion';
+        return this.langService.translate('platform.dailymotion');
       } else if (hostname.includes('artlist.io')) {
         return '🤖 Artlist AI';
       } else {
@@ -496,9 +496,9 @@ export class UploadAreaComponent implements OnInit {
         if (this.ALLOWED_EXTENSIONS.some(ext => cleanPathname.endsWith(ext.toLowerCase()))) {
           // Dosya türüne göre ikon belirle
           if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].some(ext => cleanPathname.endsWith(ext))) {
-            return '🖼️ Direkt Resim';
+            return this.langService.translate('platform.direct.image');
           } else {
-            return '🎬 Direkt Video';
+            return this.langService.translate('platform.direct.video');
           }
         }
       }
@@ -506,7 +506,7 @@ export class UploadAreaComponent implements OnInit {
       return '';
     }
     
-    return '🌐 Web Bağlantısı';
+    return this.langService.translate('platform.webpage');
   }
 
   // Platform-spesifik URL içerik doğrulaması
@@ -570,7 +570,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'Instagram ana sayfası kabul edilmiyor. Lütfen belirli bir gönderi bağlantısı girin.'
+          errorMessage: this.langService.translate('error.instagram.homepage')
         };
       }
       
@@ -581,7 +581,7 @@ export class UploadAreaComponent implements OnInit {
           !pathname.startsWith('/tv/')) {
         return {
           isValid: false,
-          errorMessage: 'Sadece Instagram gönderi, reel, hikaye veya IGTV bağlantıları kabul edilir.'
+          errorMessage: this.langService.translate('error.instagram.post.invalid')
         };
       }
       
@@ -590,7 +590,7 @@ export class UploadAreaComponent implements OnInit {
       if (segments.length < 2) {
         return {
           isValid: false,
-          errorMessage: 'Geçerli bir Instagram gönderi bağlantısı girin.'
+          errorMessage: this.langService.translate('error.instagram.link.invalid')
         };
       }
     }
@@ -600,7 +600,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'TikTok ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+          errorMessage: this.langService.translate('error.tiktok.homepage')
         };
       }
       
@@ -608,7 +608,7 @@ export class UploadAreaComponent implements OnInit {
       if (!pathname.includes('/video/') && !pathname.startsWith('/@')) {
         return {
           isValid: false,
-          errorMessage: 'Sadece TikTok video bağlantıları kabul edilir.'
+          errorMessage: this.langService.translate('error.tiktok.video.invalid')
         };
       }
     }
@@ -618,7 +618,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'Twitter ana sayfası kabul edilmiyor. Lütfen belirli bir tweet bağlantısı girin.'
+          errorMessage: this.langService.translate('error.twitter.homepage')
         };
       }
       
@@ -627,7 +627,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathParts.length < 3 || pathParts[1] !== 'status') {
         return {
           isValid: false,
-          errorMessage: 'Geçerli bir tweet bağlantısı girin. Örnek: https://twitter.com/username/status/123456789'
+          errorMessage: this.langService.translate('error.twitter.tweet.invalid')
         };
       }
     }
@@ -637,7 +637,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'Facebook ana sayfası kabul edilmiyor. Lütfen belirli bir gönderi bağlantısı girin.'
+          errorMessage: this.langService.translate('error.facebook.homepage')
         };
       }
       
@@ -648,7 +648,7 @@ export class UploadAreaComponent implements OnInit {
           !pathname.includes('/watch/')) {
         return {
           isValid: false,
-          errorMessage: 'Sadece Facebook gönderi, fotoğraf veya video bağlantıları kabul edilir.'
+          errorMessage: this.langService.translate('error.facebook.post.invalid')
         };
       }
     }
@@ -658,7 +658,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'Vimeo ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+          errorMessage: this.langService.translate('error.vimeo.homepage')
         };
       }
       
@@ -667,7 +667,7 @@ export class UploadAreaComponent implements OnInit {
       if (!/^\d+$/.test(videoId)) {
         return {
           isValid: false,
-          errorMessage: 'Geçerli bir Vimeo video bağlantısı girin. Örnek: https://vimeo.com/123456789'
+          errorMessage: this.langService.translate('error.vimeo.video.invalid')
         };
       }
     }
@@ -677,7 +677,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'DailyMotion ana sayfası kabul edilmiyor. Lütfen belirli bir video bağlantısı girin.'
+          errorMessage: this.langService.translate('error.dailymotion.homepage')
         };
       }
       
@@ -685,7 +685,7 @@ export class UploadAreaComponent implements OnInit {
       if (!pathname.startsWith('/video/')) {
         return {
           isValid: false,
-          errorMessage: 'Geçerli bir DailyMotion video bağlantısı girin.'
+          errorMessage: this.langService.translate('error.dailymotion.video.invalid')
         };
       }
     }
@@ -695,7 +695,7 @@ export class UploadAreaComponent implements OnInit {
       if (pathname === '/' || pathname === '') {
         return {
           isValid: false,
-          errorMessage: 'Artlist ana sayfası kabul edilmiyor. Lütfen belirli bir görsel bağlantısı girin.'
+          errorMessage: this.langService.translate('error.artlist.homepage')
         };
       }
       
@@ -703,7 +703,7 @@ export class UploadAreaComponent implements OnInit {
       if (!pathname.includes('/text-to-image') && !pathname.includes('/examples/') && !pathname.includes('/image/')) {
         return {
           isValid: false,
-          errorMessage: 'Sadece Artlist görsel örnekleri veya AI üretimi bağlantıları kabul edilir.'
+          errorMessage: this.langService.translate('error.artlist.link.invalid')
         };
       }
     }
