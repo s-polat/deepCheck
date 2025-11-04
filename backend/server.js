@@ -44,10 +44,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// OpenAI configuration
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// OpenAI configuration - only initialize if API key is available
+let openai = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  });
+}
 
 // Multer configuration for file uploads
 const storage = multer.memoryStorage();
@@ -207,6 +210,10 @@ function determineUrlType(url) {
 
 // AI Analysis function using OpenAI GPT-4 Vision
 async function analyzeWithAI(imageUrl) {
+  if (!openai) {
+    throw new Error('OpenAI not available - running in demo mode');
+  }
+  
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
