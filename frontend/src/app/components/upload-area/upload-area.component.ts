@@ -25,10 +25,8 @@ export class UploadAreaComponent implements OnInit {
 
   // Cache sistemi için
   private analysisCache = new Map<string, AnalysisResult>();
-  private consistencyCache = new Map<string, AnalysisResult>();
   private currentFileHash: string = '';
   public isAnalyzed: boolean = false;
-  public isConsistencyChecked: boolean = false;
 
   // Dosya kısıtlamaları
   private readonly MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -165,24 +163,21 @@ export class UploadAreaComponent implements OnInit {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  private getCacheKey(fileHash: string, type: 'analysis' | 'consistency'): string {
-    return `${type}_${fileHash}_${this.fileName || 'unknown'}`;
+  private getCacheKey(fileHash: string): string {
+    return `analysis_${fileHash}_${this.fileName || 'unknown'}`;
   }
 
   private async updateFileState(file: File) {
     this.currentFileHash = await this.generateFileHash(file);
     
     // Check if this file has been analyzed before
-    const analysisKey = this.getCacheKey(this.currentFileHash, 'analysis');
-    const consistencyKey = this.getCacheKey(this.currentFileHash, 'consistency');
+    const analysisKey = this.getCacheKey(this.currentFileHash);
     
     this.isAnalyzed = this.analysisCache.has(analysisKey);
-    this.isConsistencyChecked = this.consistencyCache.has(consistencyKey);
 
     console.log(`📝 File State Update:`, {
       hash: this.currentFileHash.substring(0, 8) + '...',
-      analyzed: this.isAnalyzed,
-      consistency_checked: this.isConsistencyChecked
+      analyzed: this.isAnalyzed
     });
 
     // Show cached result if available
@@ -196,19 +191,14 @@ export class UploadAreaComponent implements OnInit {
     }
   }
 
-  private cacheAnalysisResult(result: AnalysisResult, type: 'analysis' | 'consistency') {
+  private cacheAnalysisResult(result: AnalysisResult) {
     if (this.currentFileHash) {
-      const cacheKey = this.getCacheKey(this.currentFileHash, type);
+      const cacheKey = this.getCacheKey(this.currentFileHash);
       
-      if (type === 'analysis') {
-        this.analysisCache.set(cacheKey, result);
-        this.isAnalyzed = true;
-      } else {
-        this.consistencyCache.set(cacheKey, result);
-        this.isConsistencyChecked = true;
-      }
+      this.analysisCache.set(cacheKey, result);
+      this.isAnalyzed = true;
 
-      console.log(`💾 Cached ${type} result for file:`, {
+      console.log(`💾 Cached analysis result for file:`, {
         key: cacheKey.substring(0, 20) + '...',
         confidence: result.confidence
       });
@@ -318,7 +308,6 @@ export class UploadAreaComponent implements OnInit {
     // Reset cache state
     this.currentFileHash = '';
     this.isAnalyzed = false;
-    this.isConsistencyChecked = false;
     
     // File input'u temizle
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -347,7 +336,7 @@ export class UploadAreaComponent implements OnInit {
     if (this.selectedFile && !this.errorMessage) {
       // Check if file is already analyzed
       if (this.isAnalyzed && this.currentFileHash) {
-        const cacheKey = this.getCacheKey(this.currentFileHash, 'analysis');
+        const cacheKey = this.getCacheKey(this.currentFileHash);
         const cachedResult = this.analysisCache.get(cacheKey);
         if (cachedResult) {
           console.log('💾 File already analyzed, using cached result');
@@ -371,7 +360,7 @@ export class UploadAreaComponent implements OnInit {
               this.resultService.setResult(response.result);
               
               // Cache the result
-              this.cacheAnalysisResult(response.result, 'analysis');
+              this.cacheAnalysisResult(response.result);
             } else {
               this.errorMessage = response.error || 'Analiz sırasında bir hata oluştu.';
             }
@@ -411,7 +400,7 @@ export class UploadAreaComponent implements OnInit {
       this.resultService.setResult(this.result);
       
       // Cache demo result too
-      this.cacheAnalysisResult(this.result, 'analysis');
+      this.cacheAnalysisResult(this.result);
       this.loading = false;
     }, 2000);
   }
@@ -449,166 +438,7 @@ export class UploadAreaComponent implements OnInit {
     }
   }
 
-  // Consistency Check - Multiple analysis for same file
-  startConsistencyCheck() {
-    if (this.selectedFile && !this.errorMessage) {
-      // Check if consistency check is already done for this file
-      if (this.isConsistencyChecked && this.currentFileHash) {
-        const cacheKey = this.getCacheKey(this.currentFileHash, 'consistency');
-        const cachedResult = this.consistencyCache.get(cacheKey);
-        if (cachedResult) {
-          console.log('💾 Consistency check already performed, using cached result');
-          this.result = cachedResult;
-          this.resultService.setResult(cachedResult);
-          return;
-        }
-      }
 
-      this.loading = true;
-      this.result = null;
-      this.errorMessage = '';
-
-      console.log('🔄 Starting consistency check with 3 iterations...');
-
-      if (this.backendAvailable) {
-        // Backend consistency check API call
-        this.apiService.analyzeFileConsistency(this.selectedFile, 3).subscribe({
-          next: (response) => {
-            this.loading = false;
-            if (response.success && response.result) {
-              this.result = response.result;
-              this.resultService.setResult(response.result);
-              
-              // Cache the consistency result
-              this.cacheAnalysisResult(response.result, 'consistency');
-              console.log('✅ Consistency check completed:', response.result);
-            } else {
-              this.errorMessage = response.error || 'Consistency check failed.';
-            }
-          },
-          error: (error) => {
-            this.loading = false;
-            console.error('Consistency Check API Error:', error);
-            this.errorMessage = 'Consistency check failed. Falling back to demo analysis.';
-            // Fallback to demo consistency check
-            this.runDemoConsistencyCheck();
-          }
-        });
-      } else {
-        // Backend not available - frontend demo consistency check
-        this.runDemoConsistencyCheck();
-      }
-    }
-  }
-
-  private runDemoConsistencyCheck() {
-    console.log('🎭 Running demo smart consistency check...');
-    
-    // Simulate 3 analyses with controlled variations for demo
-    const iterations = 3;
-    const results: any[] = [];
-    
-    // Create more realistic demo scenarios
-    const scenario = Math.random();
-    
-    if (scenario < 0.4) {
-      // HIGH consistency scenario - all agree
-      const baseConfidence = 0.8 + (Math.random() * 0.1);
-      const isAI = Math.random() > 0.5;
-      for (let i = 0; i < iterations; i++) {
-        results.push({
-          is_ai_generated: isAI,
-          confidence: baseConfidence + (Math.random() * 0.1 - 0.05), // ±0.05 variation
-          analysis_number: i + 1
-        });
-      }
-    } else if (scenario < 0.7) {
-      // MEDIUM consistency scenario - mostly agree
-      const isAI = Math.random() > 0.5;
-      for (let i = 0; i < iterations; i++) {
-        results.push({
-          is_ai_generated: i === 0 ? !isAI : isAI, // One outlier
-          confidence: 0.6 + (Math.random() * 0.3), // 0.6-0.9 range
-          analysis_number: i + 1
-        });
-      }
-    } else {
-      // LOW consistency scenario - conflicting results
-      for (let i = 0; i < iterations; i++) {
-        results.push({
-          is_ai_generated: Math.random() > 0.5, // Random
-          confidence: 0.5 + (Math.random() * 0.4), // 0.5-0.9 range (high variation)
-          analysis_number: i + 1
-        });
-      }
-    }
-
-    // Smart consensus calculation (similar to backend)
-    const aiCount = results.filter(r => r.is_ai_generated).length;
-    const confidenceScores = results.map(r => r.confidence);
-    const minConfidence = Math.min(...confidenceScores);
-    const maxConfidence = Math.max(...confidenceScores);
-    const confidenceVariation = maxConfidence - minConfidence;
-    
-    const aiWeightedScore = results
-      .filter(r => r.is_ai_generated)
-      .reduce((sum, r) => sum + r.confidence, 0);
-    
-    const realWeightedScore = results
-      .filter(r => !r.is_ai_generated)
-      .reduce((sum, r) => sum + r.confidence, 0);
-    
-    // Determine final result with smart logic
-    let finalIsAI, finalConfidence, consistencyScore;
-    
-    if (confidenceVariation <= 0.15) {
-      finalIsAI = aiCount >= Math.ceil(results.length / 2);
-      finalConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-      consistencyScore = 'HIGH';
-    } else if (aiWeightedScore > realWeightedScore) {
-      finalIsAI = true;
-      finalConfidence = aiWeightedScore / Math.max(aiCount, 1);
-      consistencyScore = confidenceVariation <= 0.25 ? 'MEDIUM' : 'LOW';
-    } else {
-      finalIsAI = false;
-      finalConfidence = realWeightedScore / Math.max(results.length - aiCount, 1);
-      consistencyScore = confidenceVariation <= 0.25 ? 'MEDIUM' : 'LOW';
-    }
-
-    setTimeout(() => {
-      this.result = {
-        is_ai_generated: finalIsAI,
-        confidence: finalConfidence,
-        analysis_time: iterations * 2.0,
-        model_version: 'DeepCheck Demo Smart Consensus v1.0',
-        details: {
-          reasoning: `Smart consensus analysis: ${consistencyScore} reliability achieved. Decision based on weighted confidence scores from ${iterations} analyses.`,
-          artifacts: finalIsAI ? ['Potential AI artifacts detected', 'Pattern analysis completed'] : ['Natural image characteristics', 'Authentic details verified'],
-          probability_scores: {
-            'AI Generated': finalIsAI ? finalConfidence : (1 - finalConfidence),
-            'Real Image': finalIsAI ? (1 - finalConfidence) : finalConfidence,
-            'Edited Image': Math.min(0.2, confidenceVariation)
-          },
-          analysis_timestamp: new Date().toISOString(),
-          consistency_stats: {
-            total_analyses: iterations,
-            ai_detections: aiCount,
-            confidence_range: `${minConfidence.toFixed(3)} - ${maxConfidence.toFixed(3)}`,
-            confidence_variation: confidenceVariation.toFixed(3),
-            consistency_score: consistencyScore,
-            individual_results: results
-          }
-        }
-      };
-      
-      this.resultService.setResult(this.result);
-      
-      // Cache demo consistency result
-      this.cacheAnalysisResult(this.result, 'consistency');
-      this.loading = false;
-      console.log('✅ Demo consistency check completed');
-    }, 4000); // Longer delay to simulate multiple analyses
-  }
 
   // Dosya boyutunu okunabilir formatta göster
   getFileSize(): string {

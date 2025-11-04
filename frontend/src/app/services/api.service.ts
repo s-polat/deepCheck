@@ -12,18 +12,6 @@ export interface AnalysisResult {
     probability_scores?: { [key: string]: number };
     reasoning?: string;
     analysis_timestamp?: string;
-    consistency_stats?: {
-      total_analyses: number;
-      ai_detections: number;
-      confidence_range: string;
-      confidence_variation?: string;
-      consistency_score?: string;
-      individual_results?: Array<{
-        analysis_number: number;
-        is_ai_generated: boolean;
-        confidence: number;
-      }>;
-    };
   };
 }
 
@@ -50,16 +38,7 @@ export class ApiService {
     return this.http.post<ApiResponse>(`${this.apiUrl}/analyze/file`, formData);
   }
 
-  // Consistency check - Multiple analysis for same file
-  analyzeFileConsistency(file: File, iterations: number = 3): Observable<ApiResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
 
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}/analyze/file/consistency?iterations=${iterations}`, 
-      formData
-    );
-  }
 
   // URL analizi
   analyzeUrl(url: string): Observable<ApiResponse> {

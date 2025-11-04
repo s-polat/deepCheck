@@ -330,109 +330,7 @@ async function analyzeWithAI(imageUrl) {
   }
 }
 
-// Multiple Analysis for Consistency
-async function performMultipleAnalysis(imageUrl, iterations = 3) {
-  console.log(`🔄 Performing ${iterations} analyses for consistency check...`);
-  
-  const results = [];
-  for (let i = 0; i < iterations; i++) {
-    try {
-      console.log(`   Analysis ${i + 1}/${iterations}...`);
-      const result = await analyzeWithAI(imageUrl);
-      if (result.success) {
-        results.push(result.result);
-      }
-      
-      // Small delay between analyses
-      if (i < iterations - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    } catch (error) {
-      console.log(`   Analysis ${i + 1} failed:`, error.message);
-    }
-  }
 
-  if (results.length === 0) {
-    throw new Error('All analyses failed');
-  }
-
-  // Smart Consensus Algorithm
-  const aiGeneratedCount = results.filter(r => r.is_ai_generated).length;
-  const confidenceScores = results.map(r => r.confidence);
-  const minConfidence = Math.min(...confidenceScores);
-  const maxConfidence = Math.max(...confidenceScores);
-  const confidenceVariation = maxConfidence - minConfidence;
-  
-  // Calculate weighted consensus based on confidence scores
-  const aiWeightedScore = results
-    .filter(r => r.is_ai_generated)
-    .reduce((sum, r) => sum + r.confidence, 0);
-  
-  const realWeightedScore = results
-    .filter(r => !r.is_ai_generated)
-    .reduce((sum, r) => sum + r.confidence, 0);
-  
-  // Determine final result with smart logic
-  let finalIsAI, finalConfidence, consistencyScore;
-  
-  if (confidenceVariation <= 0.15) {
-    // High consistency - use majority vote with average confidence
-    finalIsAI = aiGeneratedCount >= Math.ceil(results.length / 2);
-    finalConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-    consistencyScore = 'HIGH';
-  } else if (aiWeightedScore > realWeightedScore) {
-    // AI scores have higher confidence overall
-    finalIsAI = true;
-    finalConfidence = aiWeightedScore / Math.max(aiGeneratedCount, 1);
-    consistencyScore = confidenceVariation <= 0.25 ? 'MEDIUM' : 'LOW';
-  } else {
-    // Real scores have higher confidence overall
-    finalIsAI = false;
-    finalConfidence = realWeightedScore / Math.max(results.length - aiGeneratedCount, 1);
-    consistencyScore = confidenceVariation <= 0.25 ? 'MEDIUM' : 'LOW';
-  }
-
-  console.log(`📊 Smart Consensus Analysis:`, {
-    total_analyses: results.length,
-    ai_generated_count: aiGeneratedCount,
-    confidence_variation: confidenceVariation.toFixed(3),
-    consistency_score: consistencyScore,
-    final_result: finalIsAI ? 'AI Generated' : 'Real/Human',
-    final_confidence: finalConfidence.toFixed(3)
-  });
-
-  return {
-    success: true,
-    result: {
-      is_ai_generated: finalIsAI,
-      confidence: finalConfidence,
-      analysis_time: 2.5 * results.length,
-      model_version: 'GPT-4 Vision v1.0 (Smart Consensus)',
-      details: {
-        reasoning: `Smart consensus analysis: ${consistencyScore} consistency detected. ${aiGeneratedCount}/${results.length} analyses indicated AI generation. Final decision weighted by confidence scores.`,
-        artifacts: [...new Set(results.flatMap(r => r.details?.artifacts || []))],
-        probability_scores: {
-          'AI Generated': finalIsAI ? finalConfidence : (1 - finalConfidence),
-          'Real Image': finalIsAI ? (1 - finalConfidence) : finalConfidence,
-          'Edited Image': Math.min(0.2, confidenceVariation)
-        },
-        analysis_timestamp: new Date().toISOString(),
-        consistency_stats: {
-          total_analyses: results.length,
-          ai_detections: aiGeneratedCount,
-          confidence_range: `${minConfidence.toFixed(3)} - ${maxConfidence.toFixed(3)}`,
-          confidence_variation: confidenceVariation.toFixed(3),
-          consistency_score: consistencyScore,
-          individual_results: results.map((r, i) => ({
-            analysis_number: i + 1,
-            is_ai_generated: r.is_ai_generated,
-            confidence: r.confidence
-          }))
-        }
-      }
-    }
-  };
-}
 
 // File upload and analysis endpoint
 app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
@@ -481,7 +379,7 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
     console.log('File uploaded to Cloudinary:', uploadResponse.public_id);
 
     // Analyze with OpenAI
-    const analysisResult = await performMultipleAnalysis(uploadResponse.secure_url);
+    const analysisResult = await analyzeWithAI(uploadResponse.secure_url);
 
     // Clean up - delete from Cloudinary after analysis (optional)
     // await cloudinary.uploader.destroy(uploadResponse.public_id);
@@ -498,86 +396,7 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
   }
 });
 
-// Consistency Check endpoint - Multiple analysis for same file
-app.post('/api/analyze/file/consistency', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'No file uploaded'
-      });
-    }
 
-    const iterations = parseInt(req.query.iterations) || 3;
-    if (iterations > 5) {
-      return res.status(400).json({
-        success: false,
-        error: 'Maximum 5 iterations allowed'
-      });
-    }
-
-    console.log(`🔍 Consistency analysis for: ${req.file.originalname} (${iterations} iterations)`);
-
-    // Demo mode fallback
-    if (DEMO_MODE || !CLOUDINARY_CONFIGURED) {
-      console.log('🎭 Running consistency check in demo mode');
-      
-      // Simulate multiple results with slight variations
-      const results = [];
-      for (let i = 0; i < iterations; i++) {
-        results.push({
-          is_ai_generated: Math.random() > 0.4, // Slightly favor AI detection
-          confidence: 0.7 + (Math.random() * 0.2), // 0.7-0.9 range
-          details: { artifacts: ['Simulated analysis'] }
-        });
-      }
-
-      const aiCount = results.filter(r => r.is_ai_generated).length;
-      const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-
-      return res.json({
-        success: true,
-        result: {
-          is_ai_generated: aiCount >= Math.ceil(iterations / 2),
-          confidence: avgConfidence,
-          analysis_time: iterations * 2.0,
-          model_version: 'DeepCheck Demo Consistency v1.0',
-          details: {
-            reasoning: `Demo consistency analysis with ${iterations} iterations. ${aiCount}/${iterations} detected AI generation.`,
-            artifacts: ['Demo consistency check'],
-            analysis_timestamp: new Date().toISOString(),
-            consistency_stats: {
-              total_analyses: iterations,
-              ai_detections: aiCount,
-              confidence_range: `${Math.min(...results.map(r => r.confidence)).toFixed(3)} - ${Math.max(...results.map(r => r.confidence)).toFixed(3)}`
-            }
-          }
-        }
-      });
-    }
-
-    // Upload to Cloudinary first
-    const b64 = Buffer.from(req.file.buffer).toString("base64");
-    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
-    
-    const uploadResponse = await cloudinary.uploader.upload(dataURI, {
-      resource_type: "auto",
-      folder: "deepcheck_consistency",
-    });
-
-    // Perform multiple analysis
-    const analysisResult = await performMultipleAnalysis(uploadResponse.secure_url, iterations);
-    res.json(analysisResult);
-
-  } catch (error) {
-    console.error('Consistency analysis error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Consistency analysis failed. Please try again later.',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
 
 // URL analysis endpoint
 app.post('/api/analyze/url', async (req, res) => {
@@ -622,7 +441,7 @@ app.post('/api/analyze/url', async (req, res) => {
 
     // Production mode with real OpenAI API
     try {
-      const analysisResult = await performMultipleAnalysis(url);
+      const analysisResult = await analyzeWithAI(url);
       res.json(analysisResult);
     } catch (error) {
       console.log('🎭 OpenAI analysis failed, falling back to demo mode:', error.message);
@@ -676,7 +495,6 @@ app.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔍 API endpoints:`);
   console.log(`   POST /api/analyze/file - File upload analysis`);
-  console.log(`   POST /api/analyze/file/consistency - Consistency check (multiple analyses)`);
   console.log(`   POST /api/analyze/url - URL analysis`);
 });
 

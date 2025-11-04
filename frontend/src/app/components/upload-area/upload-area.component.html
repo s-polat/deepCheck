@@ -249,21 +249,7 @@
           </span>
         </button>
         
-        <!-- Consistency Check Button (only for files) -->
-        <button class="btn px-3" 
-                *ngIf="selectedFile && !errorMessage"
-                (click)="startConsistencyCheck()" 
-                [disabled]="loading"
-                [ngClass]="isConsistencyChecked ? 'btn-success' : 'btn-outline-warning'"
-                [title]="isConsistencyChecked ? 'Consistency check already performed (cached)' : 'Run multiple analyses for consistency check'">
-          <i class="fas" [ngClass]="isConsistencyChecked ? 'fa-check' : 'fa-sync-alt'" class="me-1"></i>
-          <span class="d-none d-md-inline">
-            {{ isConsistencyChecked ? 'Checked ✓' : 'Consistency Check' }}
-          </span>
-          <span class="d-inline d-md-none">
-            {{ isConsistencyChecked ? '✓' : '3x' }}
-          </span>
-        </button>
+
       </div>
       
       <div *ngIf="(!selectedFile && !isValidUrl) || errorMessage || linkErrorMessage" class="text-muted mt-2">
@@ -275,19 +261,13 @@
       </div>
       
       <!-- Cache & Analysis Info -->
-      <div *ngIf="selectedFile && !errorMessage" class="text-muted mt-2">
-        <div *ngIf="isAnalyzed || isConsistencyChecked" class="mb-1">
+      <div *ngIf="selectedFile && !errorMessage && isAnalyzed" class="text-muted mt-2">
+        <div class="mb-1">
           <small class="text-success">
             <i class="fas fa-database me-1"></i>
-            <span *ngIf="isAnalyzed && isConsistencyChecked">Both analyses cached - no additional API costs</span>
-            <span *ngIf="isAnalyzed && !isConsistencyChecked">Analysis cached - consistency check available</span>
-            <span *ngIf="!isAnalyzed && isConsistencyChecked">Consistency check cached - regular analysis available</span>
+            Analysis cached - no additional API costs
           </small>
         </div>
-        <small *ngIf="!isAnalyzed && !isConsistencyChecked">
-          <i class="fas fa-shield-alt me-1"></i>
-          <strong>Consistency Check</strong> runs 3 analyses and provides a reliability score for more trustworthy results
-        </small>
       </div>
     </div>
 

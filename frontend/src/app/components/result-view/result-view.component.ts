@@ -78,48 +78,5 @@ export class ResultViewComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Consistency Check Helper Methods
-  getConsistencyBadgeClass(consistencyScore?: string): string {
-    switch(consistencyScore) {
-      case 'HIGH': return 'bg-success';
-      case 'MEDIUM': return 'bg-warning text-dark';
-      case 'LOW': return 'bg-danger';
-      default: return 'bg-info';
-    }
-  }
 
-  getConsistencyAlertClass(consistencyScore?: string): string {
-    switch(consistencyScore) {
-      case 'HIGH': return 'alert-success';
-      case 'MEDIUM': return 'alert-warning';
-      case 'LOW': return 'alert-danger';
-      default: return 'alert-info';
-    }
-  }
-
-  getConsistencyDescription(consistencyScore?: string): string {
-    switch(consistencyScore) {
-      case 'HIGH': return 'Highly Reliable';
-      case 'MEDIUM': return 'Moderately Reliable';
-      case 'LOW': return 'Less Reliable - Conflicting Results';
-      default: return 'Consistency Checked';
-    }
-  }
-
-  getConsistencyExplanation(consistencyScore?: string, confidenceVariation?: string): string {
-    switch(consistencyScore) {
-      case 'HIGH': 
-        return 'All analyses showed similar confidence levels. The result is highly reliable.';
-      case 'MEDIUM': 
-        return 'Some variation in confidence levels detected. Result is moderately reliable.';
-      case 'LOW': 
-        return `Significant variation in results detected (${confidenceVariation} variation). The AI model shows uncertainty about this image.`;
-      default: 
-        return 'Multiple analyses performed for increased reliability.';
-    }
-  }
-
-  shouldShowIndividualResults(consistencyScore?: string): boolean {
-    return consistencyScore === 'LOW' || consistencyScore === 'MEDIUM';
-  }
 }
