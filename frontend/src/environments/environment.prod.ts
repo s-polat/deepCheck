@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://BACKEND-URL/api',
-  healthUrl: 'https://BACKEND-URL/health'
+  apiUrl: 'https://deepcheck-backend.onrender.com/api',
+  healthUrl: 'https://deepcheck-backend.onrender.com/health'
 };
