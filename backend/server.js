@@ -16,10 +16,10 @@ const PORT = process.env.PORT || 3000;
 
 // Demo mode configuration
 const DEMO_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here';
-const CLOUDINARY_CONFIGURED = process.env.CLOUDINARY_CLOUD_NAME && 
-                              process.env.CLOUDINARY_API_KEY && 
-                              process.env.CLOUDINARY_API_SECRET &&
-                              process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name';
+const CLOUDINARY_CONFIGURED = process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET &&
+  process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name';
 
 // Configuration loaded
 
@@ -54,7 +54,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+    fileSize: 30 * 1024 * 1024, // 30MB limit for images
   },
   fileFilter: (req, file, cb) => {
     // Allowed file types
@@ -62,7 +62,7 @@ const upload = multer({
       'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
       'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm'
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -97,7 +97,7 @@ app.get('/api/test', (req, res) => {
       is_ai_generated: false,
       confidence: 0.87,
       analysis_time: 1.2,
-      model_version: 'GPT-4 Vision v1.0',
+      model_version: 'gpt-4o',
       details: {
         reasoning: 'Image appears to be a natural photograph with consistent lighting, realistic textures, and no detectable AI artifacts.',
         artifacts: [],
@@ -139,9 +139,9 @@ function getDemoAnalysis() {
       artifacts: ["Unnatural texture smoothness", "Repetitive patterns", "Digital signature traces"]
     }
   ];
-  
+
   const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-  
+
   return {
     success: true,
     result: {
@@ -168,16 +168,16 @@ function determineUrlType(url) {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname.toLowerCase();
     const hostname = urlObj.hostname.toLowerCase();
-    
+
     // Direct media file extensions
     const mediaExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.mp4', '.avi', '.mov', '.wmv', '.webm'];
-    
+
     // Check if it's a direct media file
     const cleanPath = pathname.split('?')[0].split('#')[0];
     if (mediaExtensions.some(ext => cleanPath.endsWith(ext))) {
       return 'direct_media';
     }
-    
+
     // Check for known AI/content platforms
     if (hostname.includes('artlist.io')) {
       return 'artlist_webpage';
@@ -194,7 +194,7 @@ function determineUrlType(url) {
     } else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
       return 'twitter_post';
     }
-    
+
     return 'webpage';
   } catch (error) {
     return 'unknown';
@@ -206,7 +206,7 @@ async function analyzeWithAI(imageUrl) {
   if (!openai) {
     throw new Error('OpenAI not available - running in demo mode');
   }
-  
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -216,26 +216,20 @@ async function analyzeWithAI(imageUrl) {
           content: [
             {
               type: "text",
-              text: `Analyze this image and determine if it appears to be AI-generated or a real photograph. 
-              
-              Please provide:
-              1. Your assessment (AI-generated or Real)
-              2. Confidence level (0.0 to 1.0)
-              3. Specific indicators that led to your conclusion
-              4. Any artifacts or patterns you notice
-              
-              Respond in JSON format with the following structure:
-              {
-                "is_ai_generated": boolean,
-                "confidence": number,
-                "reasoning": "detailed explanation",
-                "artifacts": ["list", "of", "indicators"],
-                "probability_scores": {
-                  "AI Generated": number,
-                  "Real Image": number,
-                  "Edited Image": number
-                }
-              }`
+              text: `Analyze this image and determine if it appears to be AI-generated or a real photograph.
+
+Return ONLY valid raw JSON (no markdown, no code fences, no extra text). Use exactly this structure:
+{
+  "is_ai_generated": boolean,
+  "confidence": number,
+  "reasoning": "detailed explanation",
+  "artifacts": ["list", "of", "indicators"],
+  "probability_scores": {
+    "AI Generated": number,
+    "Real Image": number,
+    "Edited Image": number
+  }
+}`
             },
             {
               type: "image_url",
@@ -253,11 +247,12 @@ async function analyzeWithAI(imageUrl) {
     });
 
     const content = response.choices[0].message.content;
-    
+
     try {
       // Parse JSON response from GPT-4
-      const result = JSON.parse(content);
-      
+      const cleanContent = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const result = JSON.parse(cleanContent);
+
       // Analysis completed successfully
 
       return {
@@ -266,7 +261,7 @@ async function analyzeWithAI(imageUrl) {
           is_ai_generated: result.is_ai_generated,
           confidence: result.confidence,
           analysis_time: 2.5,
-          model_version: 'GPT-4 Vision v1.0',
+          model_version: 'gpt-4o',
           details: {
             reasoning: result.reasoning,
             artifacts: result.artifacts || [],
@@ -277,16 +272,16 @@ async function analyzeWithAI(imageUrl) {
       };
     } catch (parseError) {
       // If JSON parsing fails, create structured response from text
-      const isAiGenerated = content.toLowerCase().includes('ai-generated') || 
-                           content.toLowerCase().includes('artificial');
-      
+      const isAiGenerated = content.toLowerCase().includes('ai-generated') ||
+        content.toLowerCase().includes('artificial');
+
       return {
         success: true,
         result: {
           is_ai_generated: isAiGenerated,
           confidence: 0.75, // Default confidence when parsing fails
           analysis_time: 2.5,
-          model_version: 'GPT-4 Vision v1.0',
+          model_version: 'gpt-4o',
           details: {
             reasoning: content,
             artifacts: ['Manual analysis performed'],
@@ -301,17 +296,17 @@ async function analyzeWithAI(imageUrl) {
     }
   } catch (error) {
     console.error('OpenAI API Error:', error);
-    
+
     // Handle different error types
     if (error.status === 429 || error.status === 401) {
       return getDemoAnalysis();
     }
-    
+
     // Handle URL download errors (invalid URLs, timeouts, etc.)
-    if (error.status === 400 && error.message && error.message.includes('downloading')) {
+    if (error.status === 400) {
       return getDemoAnalysis();
     }
-    
+
     throw error;
   }
 }
@@ -332,9 +327,9 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
     if (DEMO_MODE || !CLOUDINARY_CONFIGURED) {
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const demoResult = getDemoAnalysis();
-      
+
       return res.json(demoResult);
     }
 
@@ -344,8 +339,8 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
         {
           resource_type: 'auto',
           folder: 'deepcheck-uploads',
-          transformation: req.file.mimetype.startsWith('image/') 
-            ? [{ width: 1024, height: 1024, crop: 'limit' }] 
+          transformation: req.file.mimetype.startsWith('image/')
+            ? [{ width: 1024, height: 1024, crop: 'limit' }]
             : [{ width: 1280, height: 720, crop: 'limit' }]
         },
         (error, result) => {
@@ -353,7 +348,7 @@ app.post('/api/analyze/file', upload.single('file'), async (req, res) => {
           else resolve(result);
         }
       );
-      
+
       uploadStream.end(req.file.buffer);
     });
 
@@ -403,32 +398,34 @@ app.post('/api/analyze/url', async (req, res) => {
 
     // Demo mode - return simulated analysis
     if (DEMO_MODE) {
-      // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const demoResult = getDemoAnalysis();
-      
-      return res.json(demoResult);
+      return res.json(getDemoAnalysis());
     }
 
-    // Check if URL is a direct media file or a web page
     const urlType = determineUrlType(url);
 
-    // Production mode with real OpenAI API
-    try {
-      const analysisResult = await analyzeWithAI(url);
-      res.json(analysisResult);
-    } catch (error) {
-      // If OpenAI fails (especially for web page URLs), fallback to demo mode
-      const demoResult = getDemoAnalysis();
-      demoResult.result.details.reasoning = `Analysis performed in demo mode. Original URL type: ${urlType}. Web page URLs may require manual review for complete accuracy.`;
-      
-      res.json(demoResult);
+    // Only analyze direct media URLs with OpenAI (others often are web pages or unsupported formats)
+    if (urlType !== 'direct_media') {
+      return res.status(400).json({
+        success: false,
+        error: 'URL must point to a direct image file (png/jpeg/gif/webp). Web page URLs are not supported.',
+        details: { urlType }
+      });
     }
 
+    try {
+      const analysisResult = await analyzeWithAI(url);
+      return res.json(analysisResult);
+    } catch (error) {
+      // If OpenAI fails, fallback to demo mode
+      const demoResult = getDemoAnalysis();
+      demoResult.result.details.reasoning =
+        `Analysis performed in demo mode. OpenAI failed for URL type: ${urlType}. Reason: ${error?.message || 'unknown'}`;
+      return res.json(demoResult);
+    }
   } catch (error) {
     console.error('URL analysis error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'URL analysis failed. Please try again later.',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -464,7 +461,10 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  // Server started successfully
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📌 Mode: ${DEMO_MODE ? '⚠️  DEMO' : '✅ Production'}`);
+  console.log(`🤖 OpenAI: ${openai ? '✅ Configured' : '❌ Not configured'}`);
+  console.log(`☁️  Cloudinary: ${CLOUDINARY_CONFIGURED ? '✅ Configured' : '❌ Not configured'}`);
 });
 
 // Graceful shutdown

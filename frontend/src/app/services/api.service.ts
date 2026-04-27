@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, timeout, catchError, of } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { Observable, timeout, catchError, of, retry, throwError } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface AnalysisResult {
   is_ai_generated: boolean;
@@ -22,60 +23,84 @@ export interface ApiResponse {
   message?: string;
 }
 
+export interface SupportedFormats {
+  images: string[];
+  videos: string[];
+  max_file_size: { images: number; videos: number };
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private apiUrl = 'http://localhost:3000/api'; // Backend URL'i
+  private readonly apiUrl = environment.apiUrl ?? 'http://localhost:3000/api';
+  private readonly healthUrl = environment.healthUrl ?? 'http://localhost:3000/health';
+  private readonly defaultTimeout = 30000; // 30 saniye
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   // Dosya analizi
   analyzeFile(file: File): Observable<ApiResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.http.post<ApiResponse>(`${this.apiUrl}/analyze/file`, formData);
+    return this.http.post<ApiResponse>(`${this.apiUrl}/analyze/file`, formData).pipe(
+      timeout(this.defaultTimeout),
+      retry(1),
+      catchError(this.handleError)
+    );
   }
-
-
 
   // URL analizi
   analyzeUrl(url: string): Observable<ApiResponse> {
-    const body = { url: url };
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
+    const body = { url };
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
 
-    return this.http.post<ApiResponse>(`${this.apiUrl}/analyze/url`, body, { headers });
+    return this.http.post<ApiResponse>(`${this.apiUrl}/analyze/url`, body, { headers }).pipe(
+      timeout(this.defaultTimeout),
+      retry(1),
+      catchError(this.handleError)
+    );
   }
 
   // Sistem durumu kontrolü
   getHealthStatus(): Observable<{ status: string; message: string }> {
-    return this.http.get<{ status: string; message: string }>('http://localhost:3000/health', {
+    return this.http.get<{ status: string; message: string }>(this.healthUrl, {
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       }
     }).pipe(
-      timeout(5000), // 5 second timeout
-      catchError(error => {
-        // Health check failed
-        return of({ status: 'error', message: 'Backend connection failed' });
-      })
+      timeout(5000),
+      catchError(() => of({ status: 'error', message: 'Backend connection failed' }))
     );
   }
 
   // Desteklenen dosya türlerini getir
-  getSupportedFormats(): Observable<{ 
-    images: string[]; 
-    videos: string[];
-    max_file_size: { images: number; videos: number };
-  }> {
-    return this.http.get<{ 
-      images: string[]; 
-      videos: string[];
-      max_file_size: { images: number; videos: number };
-    }>(`${this.apiUrl}/formats`);
+  getSupportedFormats(): Observable<SupportedFormats> {
+    return this.http.get<SupportedFormats>(`${this.apiUrl}/formats`).pipe(
+      timeout(10000),
+      retry(1),
+      catchError(this.handleError)
+    );
+  }
+
+  // Merkezi hata yönetimi
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'Bilinmeyen bir hata oluştu.';
+
+    if (error.status === 0) {
+      errorMessage = 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.';
+    } else if (error.status === 413) {
+      errorMessage = 'Dosya boyutu çok büyük.';
+    } else if (error.status === 415) {
+      errorMessage = 'Desteklenmeyen dosya türü.';
+    } else if (error.status >= 500) {
+      errorMessage = 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.';
+    } else if (error.error?.message) {
+      errorMessage = error.error.message;
+    }
+
+    return throwError(() => new Error(errorMessage));
   }
 }
