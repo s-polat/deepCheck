@@ -33,8 +33,8 @@ export interface SupportedFormats {
   providedIn: 'root'
 })
 export class ApiService {
-  private readonly apiUrl = environment.apiUrl ?? 'http://localhost:3000/api';
-  private readonly healthUrl = environment.healthUrl ?? 'http://localhost:3000/health';
+  private readonly apiUrl = environment.apiUrl;
+  private readonly healthUrl = environment.healthUrl;
   private readonly defaultTimeout = 30000; // 30 saniye
 
   constructor(private http: HttpClient) {}
