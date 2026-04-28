@@ -117,6 +117,44 @@ ng serve
 
 ---
 
+## 📱 Progressive Web App (PWA)
+
+DeepCheck is fully PWA-compatible, which means it can be installed and used like a native app.
+
+### What is PWA?
+
+A **Progressive Web App** is a web application that uses modern browser features to deliver an app-like experience:
+
+- 📲 **Installable** — Add to home screen on mobile or desktop
+- ⚡ **Fast** — Cached assets load instantly
+- 📴 **Offline Support** — Shows offline page when there's no connection
+- 🔔 **Native Feel** — Runs without browser UI, like a real app
+- 🔒 **Secure** — Only works over HTTPS
+
+### How to Install
+
+**On Mobile (iOS / Android):**
+1. Open [aideepcheck.netlify.app](https://aideepcheck.netlify.app) in your browser
+2. Tap the **Share** button (iOS) or **three-dot menu** (Android)
+3. Select **"Add to Home Screen"**
+4. App icon will appear on your home screen
+
+**On Desktop (Chrome / Edge):**
+1. Open [aideepcheck.netlify.app](https://aideepcheck.netlify.app)
+2. Click the **install icon** (➕) in the address bar
+3. Click **"Install"**
+4. App opens in its own window without browser UI
+
+### PWA Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `manifest.webmanifest` | `frontend/src/` | App name, icon, theme color |
+| `sw.js` | `frontend/src/` | Service Worker — caching & offline |
+| `offline.html` | `frontend/src/` | Shown when user is offline |
+
+---
+
 ## 📄 License
 
 MIT
